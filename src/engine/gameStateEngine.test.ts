@@ -95,6 +95,7 @@ function buildBattleReplayLog(overrides: Partial<BattleReplayLog> = {}): BattleR
     opponentTeam: [buildTeamPokemon({ id: 1, name: { english: "Onix" } })],
     battleSeed: [1, 2, 3, 4],
     auxSeed: [5, 6, 7, 8],
+    ballBonus: 1,
     choices: [],
     ...overrides,
   };

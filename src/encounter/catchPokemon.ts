@@ -1,4 +1,5 @@
 import type { Pokemon } from "../api/pikaserve";
+import type { StatusCode } from "../battle/formatBattleLine";
 
 export interface CatchAttemptOptions {
   /** Ball catch-rate multiplier (Poké Ball = 1). Defaults to 1. */
@@ -24,6 +25,21 @@ const SHAKE_ROLL_MAX = 65536;
 // (Gen III+ capture formula), not the roll range itself. Conflating the two made every shake ~16x
 // less likely to succeed than intended — a 4-shake catch became ~1/65536 as likely as it should be.
 const SHAKE_THRESHOLD_NUMERATOR = 1048560;
+
+/** Gen III+ status catch-rate multipliers. `tox` counts as regular poison, same as the real games. */
+const STATUS_CATCH_BONUS: Record<StatusCode, number> = {
+  slp: 2.5,
+  frz: 2.5,
+  par: 1.5,
+  psn: 1.5,
+  tox: 1.5,
+  brn: 1.5,
+};
+
+/** The catch-rate multiplier for the wild Pokemon's current status condition (1 if none). */
+export function statusCatchBonus(status: StatusCode | null): number {
+  return status ? STATUS_CATCH_BONUS[status] : 1;
+}
 
 export function attemptCatch(pokemon: Pokemon, options: CatchAttemptOptions = {}): CatchAttemptResult {
   const ballBonus = options.ballBonus ?? 1;

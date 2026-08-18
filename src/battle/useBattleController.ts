@@ -10,7 +10,7 @@ import { awardCatchTM, awardVictoryTMs } from "../engine/tmRewards";
 import { battleNickname } from "./battleNickname";
 import type { BattleParticipant, BattleRequest, ChoiceProvider } from "./battleSimulator";
 import { ATTEMPT_CATCH, BattleSimulator } from "./battleSimulator";
-import { formatBattleLine, rawIdentName } from "./formatBattleLine";
+import { formatBattleLine, parseStatusField, rawIdentName } from "./formatBattleLine";
 import type { StatusCode } from "./formatBattleLine";
 import { chooseTrainerMove } from "./trainerAi";
 
@@ -98,19 +98,12 @@ function parseHpField(hpField: string, maxFallback: number): HpValue {
   return { current: 0, max: maxFallback };
 }
 
-/** Extracts the trailing status token from an HP field (e.g. "48/58 brn"), if any. */
-function parseStatusField(hpField: string): StatusCode | null {
-  const match = /^\S+\s+(\w+)/.exec(hpField);
-  const token = match?.[1];
-  return token && token !== "fnt" ? (token as StatusCode) : null;
-}
-
 /**
  * Runs a BattleSimulator battle, exposing React state driven by the protocol log so a UI can
  * present it turn-by-turn: choose -> results -> (forced switch ->) choose again -> ... -> outcome.
  *
- * `player`/`opponent`/`stageType`/`resume` are only read on the first render — this hook is meant
- * to be used in a component that's remounted (via a `key`) for each new battle.
+ * `player`/`opponent`/`stageType`/`ballBonus`/`resume` are only read on the first render — this
+ * hook is meant to be used in a component that's remounted (via a `key`) for each new battle.
  *
  * When `resume` is given, the battle is replayed deterministically up to the point it was saved
  * (same seeds, same recorded player choices — the AI's choices re-derive identically since it's a
@@ -120,6 +113,7 @@ export function useBattleController(
   player: BattleParticipant,
   opponent: BattleParticipant,
   stageType: StageType,
+  ballBonus: number,
   resume?: BattleReplayLog,
 ): UseBattleControllerResult {
   const startedRef = useRef(false);
@@ -183,6 +177,7 @@ export function useBattleController(
         opponentTeam: opponent.team,
         battleSeed,
         auxSeed,
+        ballBonus,
         choices: [],
       });
     }
@@ -325,6 +320,7 @@ export function useBattleController(
       () => auxPrng.random(),
       applyLogLine,
       handleCatchAttempt,
+      ballBonus,
     );
 
     void simulator.run(chooseP1, chooseP2).then(async (result) => {
@@ -350,8 +346,8 @@ export function useBattleController(
         setPhase("defeat");
       }
     });
-    // Deliberately runs once: player/opponent/stageType are stable for the lifetime of this
-    // hook instance, since the caller remounts it (via a `key`) for every new battle.
+    // Deliberately runs once: player/opponent/stageType/ballBonus are stable for the lifetime of
+    // this hook instance, since the caller remounts it (via a `key`) for every new battle.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [takeSnapshot]);
 

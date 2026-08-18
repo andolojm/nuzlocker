@@ -40,6 +40,7 @@ export function StageFlow({ alivePokemon, stage }: StageFlowProps) {
         player={{ name: resumeLog.playerName, team: resumeLog.playerTeam }}
         opponent={{ name: resumeLog.opponentName, team: resumeLog.opponentTeam }}
         stageType={resumeLog.stageType}
+        ballBonus={resumeLog.ballBonus}
         resume={resumeLog}
       />
     );
@@ -127,19 +128,20 @@ function ResolveOpponent({ confirmedTeam, stage }: ResolveOpponentProps) {
     return <p className="text-sm font-medium text-slate-600">An opponent is approaching…</p>;
   }
 
-  return <Battle player={player} opponent={opponent} stageType={stage.type} />;
+  return <Battle player={player} opponent={opponent} stageType={stage.type} ballBonus={stage.ballBonus ?? 1} />;
 }
 
 interface BattleProps {
   player: BattleParticipant;
   opponent: BattleParticipant;
   stageType: StageType;
+  ballBonus: number;
   resume?: BattleReplayLog;
 }
 
 /** Split out so useBattleController is only ever called once a team is confirmed and an opponent exists. */
-function Battle({ player, opponent, stageType, resume }: BattleProps) {
-  const controller = useBattleController(player, opponent, stageType, resume);
+function Battle({ player, opponent, stageType, ballBonus, resume }: BattleProps) {
+  const controller = useBattleController(player, opponent, stageType, ballBonus, resume);
 
   return (
     <BattleScreen

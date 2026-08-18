@@ -1,11 +1,12 @@
 import { BattleStreams, Dex, Streams, Teams, toID } from "@pkmn/sim";
 import type { PokemonSet } from "@pkmn/sim";
-import { attemptCatch } from "../encounter/catchPokemon";
+import { attemptCatch, statusCatchBonus } from "../encounter/catchPokemon";
 import type { CatchAttemptResult } from "../encounter/catchPokemon";
 import type { TeamPokemon } from "../engine/gameStateEngine";
 import { StageType } from "../engine/stage";
 import { battleNickname } from "./battleNickname";
-import { rawIdentName } from "./formatBattleLine";
+import { parseStatusField, rawIdentName } from "./formatBattleLine";
+import type { StatusCode } from "./formatBattleLine";
 
 export type PlayerSlot = "p1" | "p2";
 
@@ -189,6 +190,23 @@ function extractFoeHpFraction(line: string): number | null {
   return match ? Number(match[1]) / Number(match[2]) : null;
 }
 
+/**
+ * p2's status, as reported to p1's own stream, parsed from switch/status lines. Returns undefined
+ * when the line carries no status info at all (distinct from null, which means "no status" —
+ * cured, freshly switched in healthy, or fainted).
+ */
+function extractFoeStatus(line: string): StatusCode | null | undefined {
+  const parts = line.split("|");
+  const type = parts[1];
+  const ident = parts[2];
+  if (!ident || !ident.startsWith("p2a:")) return undefined;
+
+  if (type === "switch" || type === "drag") return parseStatusField(parts[parts.length - 1]);
+  if (type === "-status") return (parts[3] as StatusCode) ?? null;
+  if (type === "-curestatus" || type === "faint") return null;
+  return undefined;
+}
+
 interface SimulatorPlayerOptions {
   chooseAction: ChoiceProvider;
   /** The wild Pokemon this player may attempt to catch. Only set for the catching side. */
@@ -196,6 +214,8 @@ interface SimulatorPlayerOptions {
   onCatchAttempt?: (result: CatchAttemptResult) => void;
   /** Injectable RNG for the catch roll itself, distinct from the battle engine's own seed. */
   catchRandom?: () => number;
+  /** Catch-rate ball multiplier for this side's catch attempts (Poké Ball = 1). */
+  ballBonus?: number;
   /**
    * Since chooseAction may now be asynchronous (awaiting UI input), a throw inside
    * receiveRequest happens inside a detached async call that nothing else awaits — without this,
@@ -209,8 +229,10 @@ class SimulatorPlayer extends BattleStreams.BattlePlayer {
   private readonly catchTarget?: TeamPokemon;
   private readonly onCatchAttempt?: (result: CatchAttemptResult) => void;
   private readonly catchRandom?: () => number;
+  private readonly ballBonus: number;
   private readonly onError: (error: Error) => void;
   private foeHpFraction = 1;
+  private foeStatus: StatusCode | null = null;
   private caught = false;
 
   constructor(stream: Streams.ObjectReadWriteStream<string>, options: SimulatorPlayerOptions) {
@@ -219,12 +241,15 @@ class SimulatorPlayer extends BattleStreams.BattlePlayer {
     this.catchTarget = options.catchTarget;
     this.onCatchAttempt = options.onCatchAttempt;
     this.catchRandom = options.catchRandom;
+    this.ballBonus = options.ballBonus ?? 1;
     this.onError = options.onError;
   }
 
   receiveLine(line: string): void {
     const hpFraction = extractFoeHpFraction(line);
     if (hpFraction !== null) this.foeHpFraction = hpFraction;
+    const status = extractFoeStatus(line);
+    if (status !== undefined) this.foeStatus = status;
     super.receiveLine(line);
   }
 
@@ -255,6 +280,8 @@ class SimulatorPlayer extends BattleStreams.BattlePlayer {
 
     const result = attemptCatch(this.catchTarget, {
       currentHpFraction: this.foeHpFraction,
+      ballBonus: this.ballBonus,
+      statusBonus: statusCatchBonus(this.foeStatus),
       random: this.catchRandom,
     });
     this.onCatchAttempt(result);
@@ -279,6 +306,7 @@ export class BattleSimulator {
   private readonly catchRandom?: () => number;
   private readonly onLog?: (line: string) => void;
   private readonly catchListener?: (result: CatchAttemptResult) => void;
+  private readonly ballBonus: number;
 
   constructor(
     p1: BattleParticipant,
@@ -289,6 +317,7 @@ export class BattleSimulator {
     catchRandom?: () => number,
     onLog?: (line: string) => void,
     catchListener?: (result: CatchAttemptResult) => void,
+    ballBonus: number = 1,
   ) {
     this.p1 = p1;
     this.p2 = p2;
@@ -298,6 +327,7 @@ export class BattleSimulator {
     this.catchRandom = catchRandom;
     this.onLog = onLog;
     this.catchListener = catchListener;
+    this.ballBonus = ballBonus;
   }
 
   async run(chooseP1: ChoiceProvider, chooseP2: ChoiceProvider): Promise<BattleResult> {
@@ -323,6 +353,7 @@ export class BattleSimulator {
         catchTarget,
         onCatchAttempt: catchTarget ? handleCatchAttempt : undefined,
         catchRandom: this.catchRandom,
+        ballBonus: this.ballBonus,
         onError: reject,
       });
       const player2 = new SimulatorPlayer(streams.p2, { chooseAction: chooseP2, onError: reject });

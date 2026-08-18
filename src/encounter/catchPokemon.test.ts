@@ -1,5 +1,5 @@
 import type { Pokemon } from "../api/pikaserve";
-import { attemptCatch } from "./catchPokemon";
+import { attemptCatch, statusCatchBonus } from "./catchPokemon";
 
 function buildPokemon(overrides: Partial<Pokemon> = {}): Pokemon {
   return {
@@ -94,5 +94,36 @@ describe("attemptCatch", () => {
     });
 
     expect(withDefaults).toEqual(explicit);
+  });
+
+  it("combines a ball bonus and a status bonus multiplicatively (regression guard)", () => {
+    // catchRate 120, full HP, ballBonus 1.5 (Great Ball), statusBonus 1.5 (e.g. paralysis) ->
+    // modifiedCatchRate 90 -> shake threshold 52428.
+    const pokemon = buildPokemon({ catchRate: 120 });
+    const options = { ballBonus: 1.5, statusBonus: 1.5 };
+
+    const justBelowThreshold = attemptCatch(pokemon, { ...options, random: () => 52427 / 65536 });
+    const justAtThreshold = attemptCatch(pokemon, { ...options, random: () => 52428 / 65536 });
+
+    expect(justBelowThreshold).toEqual({ caught: true, shakes: 4 });
+    expect(justAtThreshold).toEqual({ caught: false, shakes: 0 });
+  });
+});
+
+describe("statusCatchBonus", () => {
+  it("returns 1 for no status", () => {
+    expect(statusCatchBonus(null)).toBe(1);
+  });
+
+  it("returns 2.5 for sleep and freeze", () => {
+    expect(statusCatchBonus("slp")).toBe(2.5);
+    expect(statusCatchBonus("frz")).toBe(2.5);
+  });
+
+  it("returns 1.5 for paralysis, poison, toxic, and burn", () => {
+    expect(statusCatchBonus("par")).toBe(1.5);
+    expect(statusCatchBonus("psn")).toBe(1.5);
+    expect(statusCatchBonus("tox")).toBe(1.5);
+    expect(statusCatchBonus("brn")).toBe(1.5);
   });
 });

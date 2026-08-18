@@ -380,6 +380,45 @@ describe("BattleSimulator catching", () => {
     expect(attempts).toEqual([{ caught: false, shakes: 0 }]);
   }, 15000);
 
+  it("raises catch odds when a higher ballBonus is passed to the constructor", async () => {
+    // catchRate 45, full HP, roll 35000/65536: fails the first shake at ballBonus 1
+    // (threshold 32767) but clears all four at ballBonus 2 (threshold 38835).
+    const onix = buildTeamPokemon({ name: { english: "Onix" } }, ["Tackle"]);
+    const roll = () => 35000 / 65536;
+
+    const weakBallSim = new BattleSimulator(
+      { name: "Bot 1", team: [onix] },
+      { name: "Bot 2", team: [buildCaterpie({ catchRate: 45 })] },
+      StageType.Catch,
+      undefined,
+      [1, 2, 3, 4],
+      roll,
+    );
+    const weakBallResult = await weakBallSim.run(
+      (request) => (request.canAttemptCatch ? ATTEMPT_CATCH : "move 1"),
+      alwaysFirstMove,
+    );
+
+    const strongBallSim = new BattleSimulator(
+      { name: "Bot 1", team: [buildTeamPokemon({ name: { english: "Onix" } }, ["Tackle"])] },
+      { name: "Bot 2", team: [buildCaterpie({ catchRate: 45 })] },
+      StageType.Catch,
+      undefined,
+      [1, 2, 3, 4],
+      roll,
+      undefined,
+      undefined,
+      2,
+    );
+    const strongBallResult = await strongBallSim.run(
+      (request) => (request.canAttemptCatch ? ATTEMPT_CATCH : "move 1"),
+      alwaysFirstMove,
+    );
+
+    expect(weakBallResult.caught).toBeUndefined();
+    expect(strongBallResult.caught).toBeDefined();
+  }, 15000);
+
   it("rejects if ATTEMPT_CATCH is returned outside a catch-enabled battle", async () => {
     const onix = buildTeamPokemon({ name: { english: "Onix" } }, ["Tackle"]);
     const caterpie = buildCaterpie();

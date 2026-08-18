@@ -32,6 +32,8 @@ export interface BattleReplayLog {
   battleSeed: BattleSeed;
   /** Drives trainer-AI move-choice jitter and catch rolls. */
   auxSeed: BattleSeed;
+  /** Catch-rate ball multiplier for this battle's catch attempts (Poké Ball = 1). */
+  ballBonus: number;
   /** One entry per resolved chooseP1 call, in order. */
   choices: string[];
 }

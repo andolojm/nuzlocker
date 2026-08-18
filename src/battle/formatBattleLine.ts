@@ -79,6 +79,13 @@ export function normalizeApostrophe(name: string): string {
   return name.replace(/’/g, "'");
 }
 
+/** Extracts the trailing status token from an HP field (e.g. "48/58 brn"), if any. */
+export function parseStatusField(hpField: string): StatusCode | null {
+  const match = /^\S+\s+(\w+)/.exec(hpField);
+  const token = match?.[1];
+  return token && token !== "fnt" ? (token as StatusCode) : null;
+}
+
 /** The ident's name portion exactly as Showdown reports it, including any battleNickname suffix. */
 export function rawIdentName(ident: string): string {
   const colon = ident.indexOf(": ");
