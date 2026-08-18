@@ -286,6 +286,26 @@ export class GameStateEngine {
     return evolved;
   }
 
+  /**
+   * Sets `pokemon`'s moveset directly (e.g. after learning a move on level-up and choosing one to
+   * forget). Distinct from teachMove, which is specifically for consuming a TM. `pokemon` must be
+   * the exact live reference currently in the alive party. Returns the new reference for the same
+   * reason setPokemonLevel does.
+   */
+  setPokemonMoves(pokemon: AlivePokemon, moves: FourMoves): AlivePokemon {
+    const index = this.gameState.pokemon.alive.indexOf(pokemon);
+    if (index === -1) {
+      throw new Error(`Pokemon "${pokemon.name.english}" is not in the alive party`);
+    }
+
+    const alive = [...this.gameState.pokemon.alive];
+    const updated = { ...pokemon, moves };
+    alive[index] = updated;
+
+    this.commit({ ...this.gameState, pokemon: { ...this.gameState.pokemon, alive } });
+    return updated;
+  }
+
   progressState(): void {
     this.commit({ ...this.gameState, state: this.gameState.state + 1 });
   }

@@ -1,11 +1,19 @@
 import { useState } from "react";
 import { PikaLocal } from "../../api/pikaLocal";
+import type { Move } from "../../api/pikaserve";
 import { resolveEvolution } from "../../engine/evolution";
 import { MAX_ACTIVE_TEAM_SIZE, gameStateEngine } from "../../engine/gameStateEngine";
-import type { AlivePokemon, TeamPokemon } from "../../engine/gameStateEngine";
-import { EvolutionModal } from "./EvolutionModal";
+import type { AlivePokemon, FourMoves, TeamPokemon } from "../../engine/gameStateEngine";
+import { nextMoveLearnLevel, rollLearnableMove } from "../../engine/moveLearning";
+import { LevelUpModal } from "./LevelUpModal";
 import { PokemonInfoModal } from "./PokemonInfoModal";
 import { PokemonTile } from "./PokemonTile";
+
+interface LevelUpInfo {
+  pokemon: AlivePokemon;
+  fromName?: string;
+  moveChoice?: { current: FourMoves; learned: Move };
+}
 
 export interface TeamChangerProps {
   alivePokemon: AlivePokemon[];
@@ -26,7 +34,7 @@ export function TeamChanger({ alivePokemon, levelCap, onSubmit }: TeamChangerPro
     alivePokemon.filter((pokemon) => pokemon.active === undefined),
   );
   const [infoPokemon, setInfoPokemon] = useState<AlivePokemon | null>(null);
-  const [evolution, setEvolution] = useState<{ fromName: string; to: TeamPokemon } | null>(null);
+  const [levelUpInfo, setLevelUpInfo] = useState<LevelUpInfo | null>(null);
 
   function moveToInactive(pokemon: AlivePokemon) {
     setActive((current) => current.filter((p) => p !== pokemon));
@@ -63,32 +71,55 @@ export function TeamChanger({ alivePokemon, levelCap, onSubmit }: TeamChangerPro
   }
 
   async function handleLevelUp(pokemon: AlivePokemon) {
-    const canEvolveNow =
+    const evoLevel =
       pokemon.evolvesInto !== undefined &&
       pokemon.evolutionLevel !== undefined &&
-      pokemon.evolutionLevel <= levelCap &&
-      pokemon.level < pokemon.evolutionLevel;
+      pokemon.evolutionLevel > pokemon.level &&
+      pokemon.evolutionLevel <= levelCap
+        ? pokemon.evolutionLevel
+        : undefined;
+    const nextMoveLevel = nextMoveLearnLevel(pokemon.level);
+    const moveLevel = nextMoveLevel !== undefined && nextMoveLevel <= levelCap ? nextMoveLevel : undefined;
 
-    if (!canEvolveNow) {
-      const leveled = gameStateEngine.setPokemonLevel(pokemon, levelCap);
-      replaceInLocalState(pokemon, leveled);
-      return;
+    const targetLevel = Math.min(levelCap, evoLevel ?? Infinity, moveLevel ?? Infinity);
+    const willEvolve = targetLevel === evoLevel;
+    const willLearnMove = targetLevel === moveLevel;
+
+    let leveled: AlivePokemon;
+    let fromName: string | undefined;
+
+    if (willEvolve) {
+      const newSpecies = await PikaLocal.getPokemon(pokemon.evolvesInto as number);
+      const nextEvolution = await resolveEvolution(newSpecies);
+      const evolvedPokemon: TeamPokemon = {
+        ...newSpecies,
+        moves: pokemon.moves,
+        ivs: pokemon.ivs,
+        level: targetLevel,
+        evolvesInto: nextEvolution?.evolvesInto,
+        evolutionLevel: nextEvolution?.evolutionLevel,
+      };
+      leveled = gameStateEngine.evolvePokemon(pokemon, evolvedPokemon);
+      fromName = pokemon.name.english;
+    } else {
+      leveled = gameStateEngine.setPokemonLevel(pokemon, targetLevel);
     }
 
-    const newSpecies = await PikaLocal.getPokemon(pokemon.evolvesInto as number);
-    const nextEvolution = await resolveEvolution(newSpecies);
-    const evolvedPokemon: TeamPokemon = {
-      ...newSpecies,
-      moves: pokemon.moves,
-      ivs: pokemon.ivs,
-      level: pokemon.evolutionLevel as number,
-      evolvesInto: nextEvolution?.evolvesInto,
-      evolutionLevel: nextEvolution?.evolutionLevel,
-    };
+    replaceInLocalState(pokemon, leveled);
 
-    const evolved = gameStateEngine.evolvePokemon(pokemon, evolvedPokemon);
-    replaceInLocalState(pokemon, evolved);
-    setEvolution({ fromName: pokemon.name.english, to: evolved });
+    if (willLearnMove) {
+      const learned = await rollLearnableMove(leveled.moves);
+      setLevelUpInfo({ pokemon: leveled, fromName, moveChoice: { current: leveled.moves, learned } });
+    } else {
+      setLevelUpInfo({ pokemon: leveled, fromName });
+    }
+  }
+
+  function handleForgetMove(pokemon: AlivePokemon, current: FourMoves, learned: Move, forgetIndex: number) {
+    const newMoves = [...current, learned].filter((_, index) => index !== forgetIndex) as FourMoves;
+    const updated = gameStateEngine.setPokemonMoves(pokemon, newMoves);
+    replaceInLocalState(pokemon, updated);
+    setLevelUpInfo(null);
   }
 
   const atCapacity = active.length >= MAX_ACTIVE_TEAM_SIZE;
@@ -201,8 +232,27 @@ export function TeamChanger({ alivePokemon, levelCap, onSubmit }: TeamChangerPro
       {infoPokemon && (
         <PokemonInfoModal pokemon={infoPokemon} onClose={() => setInfoPokemon(null)} allowTeachMove />
       )}
-      {evolution && (
-        <EvolutionModal fromName={evolution.fromName} toPokemon={evolution.to} onClose={() => setEvolution(null)} />
+      {levelUpInfo && (
+        <LevelUpModal
+          pokemon={levelUpInfo.pokemon}
+          fromName={levelUpInfo.fromName}
+          moveChoice={
+            levelUpInfo.moveChoice
+              ? {
+                  current: levelUpInfo.moveChoice.current,
+                  learned: levelUpInfo.moveChoice.learned,
+                  onForget: (index) =>
+                    handleForgetMove(
+                      levelUpInfo.pokemon,
+                      levelUpInfo.moveChoice!.current,
+                      levelUpInfo.moveChoice!.learned,
+                      index,
+                    ),
+                }
+              : undefined
+          }
+          onClose={() => setLevelUpInfo(null)}
+        />
       )}
     </div>
   );

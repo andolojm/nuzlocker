@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { AlivePokemon, OwnedTM, TeamPokemon } from "../../engine/gameStateEngine";
 import { gameStateEngine } from "../../engine/gameStateEngine";
 import { useGameState } from "../../engine/useGameState";
+import { PokemonStatsList } from "./PokemonStatsList";
 import { TMSelectModal } from "./TMSelectModal";
 
 export interface PokemonInfoModalProps {
@@ -16,15 +17,6 @@ export interface PokemonInfoModalProps {
    */
   allowTeachMove?: boolean;
 }
-
-const STATS: { key: keyof TeamPokemon["base"]; label: string }[] = [
-  { key: "HP", label: "HP" },
-  { key: "Attack", label: "Attack" },
-  { key: "Defense", label: "Defense" },
-  { key: "Sp. Attack", label: "Sp. Attack" },
-  { key: "Sp. Defense", label: "Sp. Defense" },
-  { key: "Speed", label: "Speed" },
-];
 
 export function PokemonInfoModal({ pokemon, onClose, onConfirm, allowTeachMove }: PokemonInfoModalProps) {
   const gameState = useGameState();
@@ -80,13 +72,7 @@ export function PokemonInfoModal({ pokemon, onClose, onConfirm, allowTeachMove }
           />
 
           <h3 className="font-semibold">Stats / IVs</h3>
-          <ul>
-            {STATS.map(({ key, label }) => (
-              <li key={key}>
-                {label}: {displayPokemon.base[key]} (IV {displayPokemon.ivs[key]})
-              </li>
-            ))}
-          </ul>
+          <PokemonStatsList pokemon={displayPokemon} />
 
           <h3 className="mt-2 font-semibold">Moves</h3>
           <ul>
