@@ -58,13 +58,18 @@ function TeamSelection({ alivePokemon, stage }: TeamSelectionProps) {
 
   if (!confirmedTeam) {
     return (
-      <TeamChanger
-        alivePokemon={alivePokemon}
-        onSubmit={(team) => {
-          gameStateEngine.setActiveTeam(team);
-          setConfirmedTeam(team);
-        }}
-      />
+      <div>
+        <h1 className="mb-4 text-center text-3xl font-extrabold tracking-tight text-slate-900">
+          {stage.type === StageType.Battle ? "Trainer Battle!" : "Wild Pokemon"}
+        </h1>
+        <TeamChanger
+          alivePokemon={alivePokemon}
+          onSubmit={(team) => {
+            gameStateEngine.setActiveTeam(team);
+            setConfirmedTeam(team);
+          }}
+        />
+      </div>
     );
   }
 

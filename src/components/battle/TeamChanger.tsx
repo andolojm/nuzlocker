@@ -55,8 +55,8 @@ export function TeamChanger({ alivePokemon, onSubmit }: TeamChangerProps) {
 
   return (
     <div className="rounded-xl border-4 border-slate-800 bg-slate-100 p-4 shadow-xl">
-      <h2 className="mb-3 text-lg font-bold text-slate-900">Choose Your Team</h2>
-      <div className="grid grid-cols-2 gap-4">
+      <h2 className="mb-3 text-center text-lg font-bold text-slate-900">Choose Your Team</h2>
+      <div className="grid grid-cols-1 gap-4 min-[600px]:grid-cols-2">
         <div>
           <h3 className="mb-2 text-sm font-semibold text-slate-700">
             Active ({active.length}/{MAX_ACTIVE_TEAM_SIZE})
