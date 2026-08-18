@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { DevStageControls } from "./components/DevStageControls";
 import { EndOfGameScreen } from "./components/EndOfGameScreen";
-import { Navbar } from "./components/Navbar";
 import { StageFlow } from "./components/StageFlow";
 import { Stepper } from "./components/Stepper";
 import type { Move } from "./api/pikaserve";
@@ -100,13 +99,9 @@ function App() {
 
   return (
     <div className="min-h-screen bg-slate-100">
-      <Navbar />
+      <Stepper stages={STAGES} progress={gameState.state} />
       <main className="mx-auto max-w-5xl px-6 py-12">
-        <h1 className="text-4xl font-bold tracking-tight text-slate-900">Play</h1>
-        <div className="mt-8">
-          <Stepper stages={STAGES} progress={gameState.state} />
-        </div>
-        <div className="mt-8">
+        <div>
           {gameComplete ? (
             <EndOfGameScreen alivePokemon={gameState.pokemon.alive} deadPokemon={gameState.pokemon.dead} />
           ) : (
