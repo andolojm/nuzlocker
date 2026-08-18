@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { gameStateEngine } from "../engine/gameStateEngine";
 import { injectTestTeam } from "../engine/injectTestTeam";
 
@@ -9,7 +9,13 @@ export interface DevStageControlsProps {
 
 export function DevStageControls({ onReset }: DevStageControlsProps) {
   const [injecting, setInjecting] = useState(false);
-  const [status, setStatus] = useState<string | null>(null);
+  const [status, _setStatus] = useState<string | null>(null);
+  const timer = useRef(null)
+  const setStatus = (status?: string) => {
+    _setStatus(status)
+    clearTimeout(timer.current)
+    timer.current = setTimeout(() => _setStatus(null), 5000)
+  } 
 
   async function handleInjectTestTeam() {
     setInjecting(true);
