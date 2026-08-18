@@ -68,19 +68,23 @@ export function Stepper({ stages, progress }: StepperProps) {
         {stages.map((stage, index) => {
           const status = stepStatus(index, progress);
           const isLast = index === stages.length - 1;
+          const numberColor =
+            status === "current" ? "text-emerald-600" : status === "complete" ? "text-slate-400" : "text-slate-500";
 
           return (
             <li
               key={index}
-              className={`relative flex shrink-0 items-center ${isLast ? "" : "flex-1 min-w-[3.5rem]"}`}
+              className={`flex shrink-0 items-center gap-1.5 ${isLast ? "" : "flex-1 min-w-[4rem]"}`}
               title={stage.description}
             >
-              {!isLast && (
-                <div className="absolute left-9 right-0 top-1/2 h-0.5 -translate-y-1/2" aria-hidden="true">
-                  <div className={`h-0.5 w-full ${status === "complete" ? "bg-slate-400" : "bg-slate-200"}`} />
-                </div>
-              )}
               <StepNode stage={stage} status={status} />
+              {!isLast && (
+                <div
+                  className={`h-0.5 w-4 shrink-0 ${status === "complete" ? "bg-slate-400" : "bg-slate-200"}`}
+                  aria-hidden="true"
+                />
+              )}
+              <span className={`shrink-0 text-xs font-semibold ${numberColor}`}>{index + 1}</span>
             </li>
           );
         })}
