@@ -1,6 +1,9 @@
 import { useState } from "react";
+import { PikaLocal } from "../../api/pikaLocal";
+import { resolveEvolution } from "../../engine/evolution";
 import { MAX_ACTIVE_TEAM_SIZE, gameStateEngine } from "../../engine/gameStateEngine";
-import type { AlivePokemon } from "../../engine/gameStateEngine";
+import type { AlivePokemon, TeamPokemon } from "../../engine/gameStateEngine";
+import { EvolutionModal } from "./EvolutionModal";
 import { PokemonInfoModal } from "./PokemonInfoModal";
 import { PokemonTile } from "./PokemonTile";
 
@@ -23,6 +26,7 @@ export function TeamChanger({ alivePokemon, levelCap, onSubmit }: TeamChangerPro
     alivePokemon.filter((pokemon) => pokemon.active === undefined),
   );
   const [infoPokemon, setInfoPokemon] = useState<AlivePokemon | null>(null);
+  const [evolution, setEvolution] = useState<{ fromName: string; to: TeamPokemon } | null>(null);
 
   function moveToInactive(pokemon: AlivePokemon) {
     setActive((current) => current.filter((p) => p !== pokemon));
@@ -53,10 +57,38 @@ export function TeamChanger({ alivePokemon, levelCap, onSubmit }: TeamChangerPro
     });
   }
 
-  function handleLevelUp(pokemon: AlivePokemon) {
-    const leveled = gameStateEngine.setPokemonLevel(pokemon, levelCap);
-    setActive((current) => current.map((p) => (p === pokemon ? leveled : p)));
-    setInactive((current) => current.map((p) => (p === pokemon ? leveled : p)));
+  function replaceInLocalState(pokemon: AlivePokemon, replacement: AlivePokemon) {
+    setActive((current) => current.map((p) => (p === pokemon ? replacement : p)));
+    setInactive((current) => current.map((p) => (p === pokemon ? replacement : p)));
+  }
+
+  async function handleLevelUp(pokemon: AlivePokemon) {
+    const canEvolveNow =
+      pokemon.evolvesInto !== undefined &&
+      pokemon.evolutionLevel !== undefined &&
+      pokemon.evolutionLevel <= levelCap &&
+      pokemon.level < pokemon.evolutionLevel;
+
+    if (!canEvolveNow) {
+      const leveled = gameStateEngine.setPokemonLevel(pokemon, levelCap);
+      replaceInLocalState(pokemon, leveled);
+      return;
+    }
+
+    const newSpecies = await PikaLocal.getPokemon(pokemon.evolvesInto as number);
+    const nextEvolution = await resolveEvolution(newSpecies);
+    const evolvedPokemon: TeamPokemon = {
+      ...newSpecies,
+      moves: pokemon.moves,
+      ivs: pokemon.ivs,
+      level: pokemon.evolutionLevel as number,
+      evolvesInto: nextEvolution?.evolvesInto,
+      evolutionLevel: nextEvolution?.evolutionLevel,
+    };
+
+    const evolved = gameStateEngine.evolvePokemon(pokemon, evolvedPokemon);
+    replaceInLocalState(pokemon, evolved);
+    setEvolution({ fromName: pokemon.name.english, to: evolved });
   }
 
   const atCapacity = active.length >= MAX_ACTIVE_TEAM_SIZE;
@@ -89,7 +121,7 @@ export function TeamChanger({ alivePokemon, levelCap, onSubmit }: TeamChangerPro
                 {pokemon.level < levelCap && (
                   <button
                     type="button"
-                    onClick={() => handleLevelUp(pokemon)}
+                    onClick={() => void handleLevelUp(pokemon)}
                     className="rounded-md bg-slate-500 px-1.5 py-1 text-[10px] font-bold text-white"
                   >
                     LVL UP
@@ -143,7 +175,7 @@ export function TeamChanger({ alivePokemon, levelCap, onSubmit }: TeamChangerPro
                 {pokemon.level < levelCap && (
                   <button
                     type="button"
-                    onClick={() => handleLevelUp(pokemon)}
+                    onClick={() => void handleLevelUp(pokemon)}
                     className="rounded-md bg-slate-500 px-1.5 py-1 text-[10px] font-bold text-white"
                   >
                     LVL UP
@@ -168,6 +200,9 @@ export function TeamChanger({ alivePokemon, levelCap, onSubmit }: TeamChangerPro
 
       {infoPokemon && (
         <PokemonInfoModal pokemon={infoPokemon} onClose={() => setInfoPokemon(null)} allowTeachMove />
+      )}
+      {evolution && (
+        <EvolutionModal fromName={evolution.fromName} toPokemon={evolution.to} onClose={() => setEvolution(null)} />
       )}
     </div>
   );

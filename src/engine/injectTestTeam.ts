@@ -1,4 +1,5 @@
 import { PikaLocal } from "../api/pikaLocal";
+import { resolveEvolution } from "./evolution";
 import { GameStateEngine, gameStateEngine } from "./gameStateEngine";
 import type { TeamPokemon } from "./gameStateEngine";
 
@@ -15,9 +16,11 @@ async function buildRandomTeamPokemon(): Promise<TeamPokemon> {
     PikaLocal.getRandomMove(),
   ]);
 
+  const evolution = await resolveEvolution(pokemon);
+
   // TeamPokemon has no IV/EV/nature fields to set — battleSimulator.ts already treats every
   // team member as flawless IVs / 0 EVs / neutral nature when converting to a Showdown team.
-  return { ...pokemon, level: TEST_TEAM_LEVEL, moves: [move1, move2, move3, move4] };
+  return { ...pokemon, level: TEST_TEAM_LEVEL, moves: [move1, move2, move3, move4], ...evolution };
 }
 
 /** Deletes any existing Pokemon, then adds 10 random level-50 Pokemon to the alive party and sets the first 6 as the active team. */

@@ -1,4 +1,5 @@
 import { PikaLocal } from "../api/pikaLocal";
+import { resolveEvolution } from "../engine/evolution";
 import type { TeamPokemon } from "../engine/gameStateEngine";
 
 /** "Near" the requested strength means within this fraction of it, on either side. */
@@ -32,6 +33,7 @@ export async function encounterPokemon(
     PikaLocal.getRandomMove(),
     PikaLocal.getRandomMove(),
   ]);
+  const evolution = await resolveEvolution(pokemon);
 
-  return { ...pokemon, level, moves: [move1, move2, move3, move4] };
+  return { ...pokemon, level, moves: [move1, move2, move3, move4], ...evolution };
 }

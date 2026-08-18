@@ -6,6 +6,10 @@ export type FourMoves = [Move, Move, Move, Move];
 export interface TeamPokemon extends Pokemon {
   moves: FourMoves;
   level: number;
+  /** Species id this Pokemon evolves into, if it evolves at all. */
+  evolvesInto?: number;
+  /** Level `evolvesInto` kicks in at — parsed off a level-based condition, or rolled once otherwise. */
+  evolutionLevel?: number;
 }
 
 /** Duplicated from battleSimulator.ts's identical type — engine code shouldn't import that module, since it pulls in @pkmn/sim. */
@@ -261,6 +265,25 @@ export class GameStateEngine {
 
     this.commit({ ...this.gameState, pokemon: { ...this.gameState.pokemon, alive } });
     return leveled;
+  }
+
+  /**
+   * Replaces `pokemon` with its evolved form, preserving its active-team slot. `pokemon` must be
+   * the exact live reference currently in the alive party (as with setPokemonLevel). Returns the
+   * new reference for the same reason setPokemonLevel does.
+   */
+  evolvePokemon(pokemon: AlivePokemon, evolvedInto: TeamPokemon): AlivePokemon {
+    const index = this.gameState.pokemon.alive.indexOf(pokemon);
+    if (index === -1) {
+      throw new Error(`Pokemon "${pokemon.name.english}" is not in the alive party`);
+    }
+
+    const alive = [...this.gameState.pokemon.alive];
+    const evolved: AlivePokemon = { ...evolvedInto, active: pokemon.active };
+    alive[index] = evolved;
+
+    this.commit({ ...this.gameState, pokemon: { ...this.gameState.pokemon, alive } });
+    return evolved;
   }
 
   progressState(): void {
