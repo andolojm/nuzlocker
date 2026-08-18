@@ -1,0 +1,39 @@
+{
+  "name": "@pkmn/sim",
+  "version": "0.10.11",
+  "description": "An automatically generated extraction of just the simulator portion of Pokémon Showdown",
+  "repository": "github:pkmn/ps",
+  "homepage": "https://psim.us",
+  "author": "Guangcong Luo <guangcongluo@gmail.com> (http://guangcongluo.com)",
+  "contributors": [
+    "Cathy J. Fitzpatrick <cathy@cathyjf.com> (https://cathyjf.com)",
+    "Bill Meltsner <bill@meltsner.com> (http://www.meltsner.com)"
+  ],
+  "license": "MIT",
+  "sideEffects": false,
+  "main": "build/cjs/sim/index.js",
+  "module": "build/esm/sim/index.mjs",
+  "exports": {
+    ".": {
+      "types": "./build/cjs/sim/index.d.ts",
+      "require": "./build/cjs/sim/index.js",
+      "import": "./build/esm/sim/index.mjs"
+    },
+    "./tools": {
+      "types": "./build/cjs/sim/tools/index.d.ts",
+      "require": "./build/cjs/sim/tools/index.js",
+      "import": "./build/esm/sim/tools/index.mjs"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "build"
+  ],
+  "dependencies": {
+    "@pkmn/sets": "^5.2.0",
+    "@pkmn/streams": "^1.1.0",
+    "ts-chacha20": "^1.2.0"
+  }
+}
