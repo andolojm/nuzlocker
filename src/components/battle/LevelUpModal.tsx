@@ -28,11 +28,18 @@ export function LevelUpModal({ pokemon, fromName, moveChoice, onClose }: LevelUp
         className="w-80 rounded-md bg-white p-4 text-center text-sm text-slate-900 min-[600px]:text-base"
         onClick={(event) => event.stopPropagation()}
       >
-        <p className="font-bold">
-          {fromName
-            ? `Congrats! Your ${fromName} has evolved into ${pokemon.name.english}!`
-            : `Your ${pokemon.name.english} grew to level ${pokemon.level}!`}
-        </p>
+        <div className="flex items-start justify-between gap-2">
+          <p className="font-bold">
+            {fromName
+              ? `Congrats! Your ${fromName} has evolved into ${pokemon.name.english}!`
+              : `Your ${pokemon.name.english} grew to level ${pokemon.level}!`}
+          </p>
+          {!moveChoice && (
+            <button type="button" onClick={onClose} aria-label="Close" className="shrink-0">
+              ✕
+            </button>
+          )}
+        </div>
 
         <img
           src={pokemon.image.hires}
@@ -65,7 +72,7 @@ export function LevelUpModal({ pokemon, fromName, moveChoice, onClose }: LevelUp
             onClick={onClose}
             className="mt-4 rounded-md bg-slate-800 px-6 py-2 text-sm font-bold text-white"
           >
-            NEAT!
+            ACCEPT
           </button>
         )}
       </div>
