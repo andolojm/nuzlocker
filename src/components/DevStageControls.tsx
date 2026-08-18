@@ -10,12 +10,16 @@ export interface DevStageControlsProps {
 export function DevStageControls({ onReset }: DevStageControlsProps) {
   const [injecting, setInjecting] = useState(false);
   const [status, _setStatus] = useState<string | null>(null);
-  const timer = useRef(null)
+  const timer = useRef<number>(null);
   const setStatus = (status?: string) => {
-    _setStatus(status)
-    clearTimeout(timer.current)
-    timer.current = setTimeout(() => _setStatus(null), 5000)
-  } 
+    _setStatus(status ?? null);
+
+    if(timer.current) {
+      clearTimeout(timer.current);
+    }
+
+    timer.current = setTimeout(() => _setStatus(null), 5000);
+  };
 
   async function handleInjectTestTeam() {
     setInjecting(true);
@@ -53,13 +57,19 @@ export function DevStageControls({ onReset }: DevStageControlsProps) {
       onReset?.();
     } catch (error) {
       console.error("Failed to import game state", error);
-      setStatus(error instanceof Error ? error.message : "Couldn't import from clipboard — see console.");
+      setStatus(
+        error instanceof Error
+          ? error.message
+          : "Couldn't import from clipboard — see console.",
+      );
     }
   }
 
   return (
     <div className="mt-4 flex flex-col items-center gap-3">
-      <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Dev tools</h2>
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        Dev tools
+      </h2>
       <div className="flex gap-3">
         <button
           type="button"
