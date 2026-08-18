@@ -2,12 +2,6 @@ import { useState } from "react";
 import { gameStateEngine } from "../engine/gameStateEngine";
 import { injectTestTeam } from "../engine/injectTestTeam";
 
-const LOCAL_HOSTNAMES = ["localhost", "127.0.0.1"];
-
-function isLocalhost(): boolean {
-  return typeof window !== "undefined" && LOCAL_HOSTNAMES.includes(window.location.hostname);
-}
-
 export interface DevStageControlsProps {
   /** Called after the game state is replaced out from under React (inject/import/reset), so the caller can force the stage to remount. */
   onReset?: () => void;
@@ -16,8 +10,6 @@ export interface DevStageControlsProps {
 export function DevStageControls({ onReset }: DevStageControlsProps) {
   const [injecting, setInjecting] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
-
-  if (!isLocalhost()) return null;
 
   async function handleInjectTestTeam() {
     setInjecting(true);
@@ -61,6 +53,7 @@ export function DevStageControls({ onReset }: DevStageControlsProps) {
 
   return (
     <div className="mt-4 flex flex-col items-center gap-3">
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Dev tools</h2>
       <div className="flex gap-3">
         <button
           type="button"
