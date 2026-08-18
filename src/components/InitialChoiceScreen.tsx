@@ -3,7 +3,6 @@ import { encounterPokemon } from "../encounter/encounterPokemon";
 import { gameStateEngine } from "../engine/gameStateEngine";
 import type { TeamPokemon } from "../engine/gameStateEngine";
 import { PokemonInfoModal } from "./battle/PokemonInfoModal";
-import { PokeballIcon } from "./Stepper";
 
 const STARTER_COUNT = 3;
 const MIN_STARTER_STRENGTH = 250;
@@ -76,7 +75,11 @@ interface StarterOptionProps {
 function StarterOption({ pokemon, onClick }: StarterOptionProps) {
   return (
     <button type="button" onClick={onClick} className="flex flex-col items-center gap-2">
-      <PokeballIcon className="h-16 w-16 transition-transform hover:scale-110" />
+      <img
+        src={pokemon.image.hires}
+        alt={pokemon.name.english}
+        className="h-16 w-16 object-contain [image-rendering:pixelated] transition-transform hover:scale-110"
+      />
       <span className="text-sm font-semibold text-slate-800">{pokemon.name.english}</span>
     </button>
   );
