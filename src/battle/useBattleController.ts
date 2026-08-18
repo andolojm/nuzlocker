@@ -11,6 +11,7 @@ import { battleNickname } from "./battleNickname";
 import type { BattleParticipant, BattleRequest, ChoiceProvider } from "./battleSimulator";
 import { ATTEMPT_CATCH, BattleSimulator } from "./battleSimulator";
 import { formatBattleLine, rawIdentName } from "./formatBattleLine";
+import type { StatusCode } from "./formatBattleLine";
 import { chooseTrainerMove } from "./trainerAi";
 
 /** Mirrors @pkmn/sim's internal Gen5RNG.generateSeed(), which isn't itself exported. */
@@ -64,6 +65,8 @@ export interface UseBattleControllerResult {
   opponentPokemon: TeamPokemon;
   playerHp: HpValue;
   opponentHp: HpValue;
+  playerStatus: StatusCode | null;
+  opponentStatus: StatusCode | null;
   playerParty: PartySlot[];
   turnEvents: string[];
   submitMove: (move: Move) => void;
@@ -81,6 +84,8 @@ interface Snapshot {
   playerActiveIndex: number;
   opponentHp: HpValue[];
   opponentActiveIndex: number;
+  playerStatus: (StatusCode | null)[];
+  opponentStatus: (StatusCode | null)[];
 }
 
 function fullHp(pokemon: TeamPokemon): HpValue {
@@ -91,6 +96,13 @@ function parseHpField(hpField: string, maxFallback: number): HpValue {
   const match = /^(\d+)\/(\d+)/.exec(hpField);
   if (match) return { current: Number(match[1]), max: Number(match[2]) };
   return { current: 0, max: maxFallback };
+}
+
+/** Extracts the trailing status token from an HP field (e.g. "48/58 brn"), if any. */
+function parseStatusField(hpField: string): StatusCode | null {
+  const match = /^\S+\s+(\w+)/.exec(hpField);
+  const token = match?.[1];
+  return token && token !== "fnt" ? (token as StatusCode) : null;
 }
 
 /**
@@ -116,6 +128,8 @@ export function useBattleController(
   const playerActiveIndexRef = useRef(0);
   const opponentHpRef = useRef<HpValue[]>(opponent.team.map(fullHp));
   const opponentActiveIndexRef = useRef(0);
+  const playerStatusRef = useRef<(StatusCode | null)[]>(player.team.map(() => null));
+  const opponentStatusRef = useRef<(StatusCode | null)[]>(opponent.team.map(() => null));
   const deadReportedRef = useRef(new Set<number>());
   const logBufferRef = useRef<string[]>([]);
   const isFirstDecisionRef = useRef(!resume || resume.choices.length === 0);
@@ -134,6 +148,8 @@ export function useBattleController(
     playerActiveIndex: 0,
     opponentHp: opponentHpRef.current,
     opponentActiveIndex: 0,
+    playerStatus: playerStatusRef.current,
+    opponentStatus: opponentStatusRef.current,
   }));
 
   const takeSnapshot = useCallback(
@@ -142,6 +158,8 @@ export function useBattleController(
       playerActiveIndex: playerActiveIndexRef.current,
       opponentHp: [...opponentHpRef.current],
       opponentActiveIndex: opponentActiveIndexRef.current,
+      playerStatus: [...playerStatusRef.current],
+      opponentStatus: [...opponentStatusRef.current],
     }),
     [],
   );
@@ -186,14 +204,27 @@ export function useBattleController(
         const nickname = rawIdentName(ident);
         const index = team.findIndex((_, i) => battleNickname(team, i) === nickname);
         if (index === -1) return;
-        const hp = parseHpField(parts[4] ?? "", team[index].base.HP);
+        const hpField = parts[4] ?? "";
+        const hp = parseHpField(hpField, team[index].base.HP);
+        const status = parseStatusField(hpField);
         if (isPlayer) {
           playerActiveIndexRef.current = index;
           playerHpRef.current[index] = hp;
+          playerStatusRef.current[index] = status;
         } else {
           opponentActiveIndexRef.current = index;
           opponentHpRef.current[index] = hp;
+          opponentStatusRef.current[index] = status;
         }
+        return;
+      }
+
+      if (type === "-status" || type === "-curestatus") {
+        const ident = parts[2];
+        const isPlayer = ident.startsWith("p1");
+        const index = isPlayer ? playerActiveIndexRef.current : opponentActiveIndexRef.current;
+        const status = type === "-status" ? ((parts[3] as StatusCode) ?? null) : null;
+        (isPlayer ? playerStatusRef : opponentStatusRef).current[index] = status;
         return;
       }
 
@@ -213,6 +244,7 @@ export function useBattleController(
         const team = isPlayer ? player.team : opponent.team;
         const index = isPlayer ? playerActiveIndexRef.current : opponentActiveIndexRef.current;
         (isPlayer ? playerHpRef : opponentHpRef).current[index] = { current: 0, max: team[index].base.HP };
+        (isPlayer ? playerStatusRef : opponentStatusRef).current[index] = null;
 
         if (isPlayer && !deadReportedRef.current.has(index)) {
           deadReportedRef.current.add(index);
@@ -422,6 +454,8 @@ export function useBattleController(
     opponentPokemon: opponent.team[snapshot.opponentActiveIndex],
     playerHp: snapshot.playerHp[snapshot.playerActiveIndex],
     opponentHp: snapshot.opponentHp[snapshot.opponentActiveIndex],
+    playerStatus: snapshot.playerStatus[snapshot.playerActiveIndex] ?? null,
+    opponentStatus: snapshot.opponentStatus[snapshot.opponentActiveIndex] ?? null,
     playerParty: buildPlayerParty(),
     turnEvents,
     submitMove,

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { Move } from "../../api/pikaserve";
+import type { StatusCode } from "../../battle/formatBattleLine";
 import type { BattlePhase, HpValue } from "../../battle/useBattleController";
 import type { OwnedTM, TeamPokemon } from "../../engine/gameStateEngine";
 import { StageType } from "../../engine/stage";
@@ -18,6 +19,8 @@ export interface BattleScreenProps {
   opponentPokemon: TeamPokemon;
   playerHp: HpValue;
   opponentHp: HpValue;
+  playerStatus: StatusCode | null;
+  opponentStatus: StatusCode | null;
   playerParty: PartySlot[];
   stageType: StageType;
   phase: BattlePhase;
@@ -39,6 +42,8 @@ export function BattleScreen({
   opponentPokemon,
   playerHp,
   opponentHp,
+  playerStatus,
+  opponentStatus,
   playerParty,
   stageType,
   phase,
@@ -74,7 +79,7 @@ export function BattleScreen({
     <div className="relative overflow-hidden rounded-xl border-4 border-slate-800 shadow-xl max-[750px]:-mx-6">
       <div className="relative h-110 bg-gradient-to-b from-sky-300 via-sky-200 to-green-400">
         <div className="absolute top-4 left-4">
-          <PokemonInfoBox pokemon={opponentPokemon} hp={opponentHp} />
+          <PokemonInfoBox pokemon={opponentPokemon} hp={opponentHp} status={opponentStatus} />
         </div>
         <img
           src={opponentPokemon.image.hires}
@@ -88,7 +93,12 @@ export function BattleScreen({
           className="absolute bottom-0 left-8 h-64 w-64"
         />
         <div className="absolute right-4 bottom-6">
-          <PokemonInfoBox pokemon={playerPokemon} hp={playerHp} onInfoClick={() => setShowPlayerInfo(true)} />
+          <PokemonInfoBox
+            pokemon={playerPokemon}
+            hp={playerHp}
+            status={playerStatus}
+            onInfoClick={() => setShowPlayerInfo(true)}
+          />
         </div>
       </div>
 

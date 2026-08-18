@@ -3,7 +3,7 @@ export interface FormatContext {
   opponentName: string;
 }
 
-type StatusCode = "brn" | "par" | "slp" | "frz" | "psn" | "tox";
+export type StatusCode = "brn" | "par" | "slp" | "frz" | "psn" | "tox";
 
 const STATUS_INFLICTED: Record<StatusCode, string> = {
   brn: "was burned!",

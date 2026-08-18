@@ -146,6 +146,8 @@ function Battle({ player, opponent, stageType, resume }: BattleProps) {
       opponentPokemon={controller.opponentPokemon}
       playerHp={controller.playerHp}
       opponentHp={controller.opponentHp}
+      playerStatus={controller.playerStatus}
+      opponentStatus={controller.opponentStatus}
       playerParty={controller.playerParty}
       stageType={stageType}
       phase={controller.phase}
