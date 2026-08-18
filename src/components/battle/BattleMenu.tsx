@@ -38,7 +38,6 @@ export function BattleMenu({ disabledActions = [], active = true, onSelect }: Ba
             disabled={disabled}
             tabIndex={-1}
             onClick={() => {
-              if (!active) return;
               setSelected(index);
               onSelect?.(action);
             }}
