@@ -64,6 +64,7 @@ function TeamSelection({ alivePokemon, stage }: TeamSelectionProps) {
         </h1>
         <TeamChanger
           alivePokemon={alivePokemon}
+          levelCap={stage.cap}
           onSubmit={(team) => {
             gameStateEngine.setActiveTeam(team);
             setConfirmedTeam(team);
@@ -106,18 +107,18 @@ function ResolveOpponent({ confirmedTeam, stage }: ResolveOpponentProps) {
     const caughtPokemon = [...gameStateEngine.current.pokemon.alive, ...gameStateEngine.current.pokemon.dead];
 
     if (stage.type === StageType.Catch) {
-      void encounterPokemon(stageNumber, caughtPokemon, stage.strength).then((pokemon) => {
+      void encounterPokemon(stageNumber, caughtPokemon, stage.strength, stage.level).then((pokemon) => {
         setOpponent({ name: `Wild ${pokemon.name.english}`, team: [pokemon] });
       });
       return;
     }
 
     const strengths = stage.opponentTeam ?? [];
-    void Promise.all(strengths.map((strength) => encounterPokemon(stageNumber, caughtPokemon, strength))).then(
-      (team) => {
-        setOpponent({ name: "Trainer", team });
-      },
-    );
+    void Promise.all(
+      strengths.map((strength) => encounterPokemon(stageNumber, caughtPokemon, strength, stage.level)),
+    ).then((team) => {
+      setOpponent({ name: "Trainer", team });
+    });
     // Deliberately runs once: this component is remounted for every new stage.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

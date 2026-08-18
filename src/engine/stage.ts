@@ -13,4 +13,8 @@ export interface Stage {
   opponentTeam?: number[];
   /** Strength passed to encounterPokemon to constrain the wild Pokemon's bst. Only set for Catch stages. */
   strength?: number;
+  /** Level assigned to every Pokemon on the opponent's side of this stage's battle. */
+  level: number;
+  /** Max level the player's own Pokemon may be leveled up to at this stage. */
+  cap: number;
 }

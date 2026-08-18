@@ -10,7 +10,12 @@ describe("StageType", () => {
 
 describe("Stage", () => {
   it("pairs a stage type with descriptive text", () => {
-    const stage: Stage = { type: StageType.Battle, description: "A wild trainer blocks your path." };
+    const stage: Stage = {
+      type: StageType.Battle,
+      description: "A wild trainer blocks your path.",
+      level: 10,
+      cap: 13,
+    };
 
     expect(stage.type).toBe(StageType.Battle);
     expect(stage.description).toBe("A wild trainer blocks your path.");

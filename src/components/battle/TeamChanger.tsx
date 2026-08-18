@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { MAX_ACTIVE_TEAM_SIZE } from "../../engine/gameStateEngine";
+import { MAX_ACTIVE_TEAM_SIZE, gameStateEngine } from "../../engine/gameStateEngine";
 import type { AlivePokemon } from "../../engine/gameStateEngine";
 import { PokemonInfoModal } from "./PokemonInfoModal";
 import { PokemonTile } from "./PokemonTile";
 
 export interface TeamChangerProps {
   alivePokemon: AlivePokemon[];
+  /** Max level a Pokemon can be leveled up to via the LVL UP button, at the current stage. */
+  levelCap: number;
   onSubmit: (team: AlivePokemon[]) => void;
 }
 
@@ -13,7 +15,7 @@ function sortByActiveOrder(pokemon: AlivePokemon[]): AlivePokemon[] {
   return [...pokemon].sort((a, b) => (a.active ?? 0) - (b.active ?? 0));
 }
 
-export function TeamChanger({ alivePokemon, onSubmit }: TeamChangerProps) {
+export function TeamChanger({ alivePokemon, levelCap, onSubmit }: TeamChangerProps) {
   const [active, setActive] = useState<AlivePokemon[]>(() =>
     sortByActiveOrder(alivePokemon.filter((pokemon) => pokemon.active !== undefined)),
   );
@@ -51,6 +53,12 @@ export function TeamChanger({ alivePokemon, onSubmit }: TeamChangerProps) {
     });
   }
 
+  function handleLevelUp(pokemon: AlivePokemon) {
+    const leveled = gameStateEngine.setPokemonLevel(pokemon, levelCap);
+    setActive((current) => current.map((p) => (p === pokemon ? leveled : p)));
+    setInactive((current) => current.map((p) => (p === pokemon ? leveled : p)));
+  }
+
   const atCapacity = active.length >= MAX_ACTIVE_TEAM_SIZE;
 
   return (
@@ -78,6 +86,15 @@ export function TeamChanger({ alivePokemon, onSubmit }: TeamChangerProps) {
                 >
                   INFO
                 </button>
+                {pokemon.level < levelCap && (
+                  <button
+                    type="button"
+                    onClick={() => handleLevelUp(pokemon)}
+                    className="rounded-md bg-slate-500 px-1.5 py-1 text-[10px] font-bold text-white"
+                  >
+                    LVL UP
+                  </button>
+                )}
                 <button
                   type="button"
                   disabled={index === 0}
@@ -123,6 +140,15 @@ export function TeamChanger({ alivePokemon, onSubmit }: TeamChangerProps) {
                 >
                   INFO
                 </button>
+                {pokemon.level < levelCap && (
+                  <button
+                    type="button"
+                    onClick={() => handleLevelUp(pokemon)}
+                    className="rounded-md bg-slate-500 px-1.5 py-1 text-[10px] font-bold text-white"
+                  >
+                    LVL UP
+                  </button>
+                )}
               </li>
             ))}
           </ul>

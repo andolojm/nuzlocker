@@ -1,6 +1,5 @@
 import { PikaLocal } from "../api/pikaLocal";
 import type { TeamPokemon } from "../engine/gameStateEngine";
-import { TEST_TEAM_LEVEL } from "../engine/injectTestTeam";
 
 /** "Near" the requested strength means within this fraction of it, on either side. */
 const STRENGTH_TOLERANCE = 0.1;
@@ -14,7 +13,8 @@ const DUPLICATE_REROLL_LIMIT = 500;
 export async function encounterPokemon(
   _stage: number,
   caughtPokemon: TeamPokemon[],
-  strength?: number,
+  strength: number | undefined,
+  level: number,
 ): Promise<TeamPokemon> {
   const minBst = strength === undefined ? undefined : strength * (1 - STRENGTH_TOLERANCE);
   const maxBst = strength === undefined ? undefined : strength * (1 + STRENGTH_TOLERANCE);
@@ -33,5 +33,5 @@ export async function encounterPokemon(
     PikaLocal.getRandomMove(),
   ]);
 
-  return { ...pokemon, level: TEST_TEAM_LEVEL, moves: [move1, move2, move3, move4] };
+  return { ...pokemon, level, moves: [move1, move2, move3, move4] };
 }

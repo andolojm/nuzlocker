@@ -8,6 +8,7 @@ import { PokeballIcon } from "./Stepper";
 const STARTER_COUNT = 3;
 const MIN_STARTER_STRENGTH = 250;
 const MAX_STARTER_STRENGTH = 325;
+const STARTER_LEVEL = 6;
 
 function randomStarterStrength(): number {
   return Math.round(MIN_STARTER_STRENGTH + Math.random() * (MAX_STARTER_STRENGTH - MIN_STARTER_STRENGTH));
@@ -28,7 +29,7 @@ export function InitialChoiceScreen() {
 
     void Promise.all(
       Array.from({ length: STARTER_COUNT }, () =>
-        encounterPokemon(stageNumber, caughtPokemon, randomStarterStrength()),
+        encounterPokemon(stageNumber, caughtPokemon, randomStarterStrength(), STARTER_LEVEL),
       ),
     ).then(setOptions);
     // Deliberately runs once: this component is remounted for every new stage.

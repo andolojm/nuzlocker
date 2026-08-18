@@ -243,6 +243,26 @@ export class GameStateEngine {
     this.commit({ ...this.gameState, pokemon: { ...this.gameState.pokemon, alive }, tms });
   }
 
+  /**
+   * Sets `pokemon`'s level directly. `pokemon` must be the exact live reference currently in the
+   * alive party (as with markPokemonDead/setActiveTeam/teachMove). Returns the new reference,
+   * since callers holding their own copy of `pokemon` (e.g. local component state) need it to
+   * stay in sync with what's now stored here — other engine methods key off exact identity.
+   */
+  setPokemonLevel(pokemon: AlivePokemon, level: number): AlivePokemon {
+    const index = this.gameState.pokemon.alive.indexOf(pokemon);
+    if (index === -1) {
+      throw new Error(`Pokemon "${pokemon.name.english}" is not in the alive party`);
+    }
+
+    const alive = [...this.gameState.pokemon.alive];
+    const leveled = { ...pokemon, level };
+    alive[index] = leveled;
+
+    this.commit({ ...this.gameState, pokemon: { ...this.gameState.pokemon, alive } });
+    return leveled;
+  }
+
   progressState(): void {
     this.commit({ ...this.gameState, state: this.gameState.state + 1 });
   }

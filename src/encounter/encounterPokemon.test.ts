@@ -1,8 +1,9 @@
 import { PikaLocal } from "../api/pikaLocal";
 import type { Move, Pokemon } from "../api/pikaserve";
 import type { TeamPokemon } from "../engine/gameStateEngine";
-import { TEST_TEAM_LEVEL } from "../engine/injectTestTeam";
 import { encounterPokemon } from "./encounterPokemon";
+
+const LEVEL = 37;
 
 function buildMove(overrides: Partial<Move> = {}): Move {
   return {
@@ -68,25 +69,25 @@ describe("encounterPokemon", () => {
       .mockResolvedValueOnce(moves[2])
       .mockResolvedValueOnce(moves[3]);
 
-    const result = await encounterPokemon(1, []);
+    const result = await encounterPokemon(1, [], undefined, LEVEL);
 
-    expect(result).toEqual({ ...pikachu, level: TEST_TEAM_LEVEL, moves });
+    expect(result).toEqual({ ...pikachu, level: LEVEL, moves });
   });
 
-  it("sets the level to TEST_TEAM_LEVEL", async () => {
+  it("sets the level to the given level argument", async () => {
     jest.spyOn(PikaLocal, "getRandomPokemon").mockResolvedValue(buildPokemon());
     jest.spyOn(PikaLocal, "getRandomMove").mockResolvedValue(buildMove());
 
-    const result = await encounterPokemon(1, []);
+    const result = await encounterPokemon(1, [], undefined, LEVEL);
 
-    expect(result.level).toBe(TEST_TEAM_LEVEL);
+    expect(result.level).toBe(LEVEL);
   });
 
   it("gives the pokemon 4 moves", async () => {
     jest.spyOn(PikaLocal, "getRandomPokemon").mockResolvedValue(buildPokemon());
     const spy = jest.spyOn(PikaLocal, "getRandomMove").mockResolvedValue(buildMove());
 
-    const result = await encounterPokemon(1, []);
+    const result = await encounterPokemon(1, [], undefined, LEVEL);
 
     expect(result.moves).toHaveLength(4);
     expect(spy).toHaveBeenCalledTimes(4);
@@ -97,8 +98,8 @@ describe("encounterPokemon", () => {
     const pokemonSpy = jest.spyOn(PikaLocal, "getRandomPokemon").mockResolvedValue(bulbasaur);
     jest.spyOn(PikaLocal, "getRandomMove").mockResolvedValue(buildMove());
 
-    const withStage1 = await encounterPokemon(1, []);
-    const withStage42 = await encounterPokemon(42, []);
+    const withStage1 = await encounterPokemon(1, [], undefined, LEVEL);
+    const withStage42 = await encounterPokemon(42, [], undefined, LEVEL);
 
     expect(withStage1.name.english).toBe("Bulbasaur");
     expect(withStage42.name.english).toBe("Bulbasaur");
@@ -109,7 +110,7 @@ describe("encounterPokemon", () => {
     const pokemonSpy = jest.spyOn(PikaLocal, "getRandomPokemon").mockResolvedValue(buildPokemon());
     jest.spyOn(PikaLocal, "getRandomMove").mockResolvedValue(buildMove());
 
-    await encounterPokemon(1, []);
+    await encounterPokemon(1, [], undefined, LEVEL);
 
     expect(pokemonSpy).toHaveBeenCalledWith(undefined, undefined);
   });
@@ -118,7 +119,7 @@ describe("encounterPokemon", () => {
     const pokemonSpy = jest.spyOn(PikaLocal, "getRandomPokemon").mockResolvedValue(buildPokemon());
     jest.spyOn(PikaLocal, "getRandomMove").mockResolvedValue(buildMove());
 
-    await encounterPokemon(1, [], 450);
+    await encounterPokemon(1, [], 450, LEVEL);
 
     const [minBst, maxBst] = pokemonSpy.mock.calls[0];
     expect(minBst).toBeCloseTo(405);
@@ -135,7 +136,12 @@ describe("encounterPokemon", () => {
       .mockResolvedValueOnce(charmander);
     jest.spyOn(PikaLocal, "getRandomMove").mockResolvedValue(buildMove());
 
-    const result = await encounterPokemon(1, [buildTeamPokemon({ id: 1, name: { english: "Bulbasaur" } })]);
+    const result = await encounterPokemon(
+      1,
+      [buildTeamPokemon({ id: 1, name: { english: "Bulbasaur" } })],
+      undefined,
+      LEVEL,
+    );
 
     expect(result.name.english).toBe("Charmander");
     expect(pokemonSpy).toHaveBeenCalledTimes(3);
@@ -149,7 +155,7 @@ describe("encounterPokemon", () => {
       buildTeamPokemon({ id: i === 0 ? 1 : i + 1000, name: { english: `Mon${i}` } }),
     );
 
-    const result = await encounterPokemon(1, caughtPokemon);
+    const result = await encounterPokemon(1, caughtPokemon, undefined, LEVEL);
 
     expect(result.name.english).toBe("Bulbasaur");
     expect(pokemonSpy).toHaveBeenCalledTimes(1);
