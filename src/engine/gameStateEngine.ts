@@ -219,8 +219,11 @@ export class GameStateEngine {
    * Teaches `tm`'s move to `pokemon` at `moveIndex`, replacing whatever move was there, and
    * consumes the TM in the same commit. `pokemon` must be the exact live reference currently in
    * the alive party (as with markPokemonDead/setActiveTeam), and `tm` the exact reference in tms.
+   * Returns the new reference, since callers holding their own copy of `pokemon` (e.g. local
+   * component state) need it to stay in sync with what's now stored here — other engine methods
+   * key off exact identity.
    */
-  teachMove(pokemon: AlivePokemon, moveIndex: number, tm: OwnedTM): void {
+  teachMove(pokemon: AlivePokemon, moveIndex: number, tm: OwnedTM): AlivePokemon {
     const pokemonIndex = this.gameState.pokemon.alive.indexOf(pokemon);
     if (pokemonIndex === -1) {
       throw new Error(`Pokemon "${pokemon.name.english}" is not in the alive party`);
@@ -238,13 +241,15 @@ export class GameStateEngine {
     const moves = [...pokemon.moves] as FourMoves;
     moves[moveIndex] = tm.move;
 
+    const taught = { ...pokemon, moves };
     const alive = [...this.gameState.pokemon.alive];
-    alive[pokemonIndex] = { ...pokemon, moves };
+    alive[pokemonIndex] = taught;
 
     const tms = [...this.gameState.tms];
     tms.splice(tmIndex, 1);
 
     this.commit({ ...this.gameState, pokemon: { ...this.gameState.pokemon, alive }, tms });
+    return taught;
   }
 
   /**

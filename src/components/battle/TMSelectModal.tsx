@@ -1,14 +1,18 @@
 import { useEffect } from "react";
-import type { OwnedTM } from "../../engine/gameStateEngine";
+import type { OwnedTM, TeamPokemon } from "../../engine/gameStateEngine";
+import { MoveTile } from "./MoveTile";
+import { PokemonStatsList } from "./PokemonStatsList";
 
 export interface TMSelectModalProps {
+  /** Shown for reference — type and Stats/IVs — while picking a TM. */
+  pokemon: TeamPokemon;
   tms: OwnedTM[];
   onSelect: (tm: OwnedTM) => void;
   onClose: () => void;
 }
 
 /** Stacks on top of PokemonInfoModal, letting the player pick an owned TM to teach. */
-export function TMSelectModal({ tms, onSelect, onClose }: TMSelectModalProps) {
+export function TMSelectModal({ pokemon, tms, onSelect, onClose }: TMSelectModalProps) {
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") onClose();
@@ -24,28 +28,25 @@ export function TMSelectModal({ tms, onSelect, onClose }: TMSelectModalProps) {
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-center justify-between gap-2">
-          <h2 className="font-bold">Choose a TM</h2>
+          <h2 className="font-bold">
+            Choose a TM for {pokemon.name.english} ({pokemon.type.join(" / ")})
+          </h2>
           <button type="button" onClick={onClose} aria-label="Close">
             ✕
           </button>
         </div>
 
+        <h3 className="mt-2 font-semibold">Stats / IVs</h3>
+        <PokemonStatsList pokemon={pokemon} />
+
         {tms.length === 0 ? (
           <p className="mt-3 italic text-slate-600">You don't have any TMs.</p>
         ) : (
-          <ul className="mt-3 space-y-1.5">
+          <ul className="mt-3 space-y-2">
             {tms.map((tm, index) => (
               <li key={index}>
-                <button
-                  type="button"
-                  onClick={() => onSelect(tm)}
-                  className="w-full rounded-md bg-slate-100 px-3 py-2 text-left hover:bg-slate-200"
-                >
-                  <div className="font-semibold">{tm.name.english}</div>
-                  <div className="text-xs text-slate-600">
-                    {tm.move.name.english} ({tm.move.type})
-                  </div>
-                </button>
+                <p className="mb-0.5 text-xs font-semibold text-slate-600">{tm.name.english}</p>
+                <MoveTile move={tm.move} onClick={() => onSelect(tm)} />
               </li>
             ))}
           </ul>

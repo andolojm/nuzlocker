@@ -230,7 +230,15 @@ export function TeamChanger({ alivePokemon, levelCap, onSubmit }: TeamChangerPro
       </div>
 
       {infoPokemon && (
-        <PokemonInfoModal pokemon={infoPokemon} onClose={() => setInfoPokemon(null)} allowTeachMove />
+        <PokemonInfoModal
+          pokemon={infoPokemon}
+          onClose={() => setInfoPokemon(null)}
+          allowTeachMove
+          onPokemonUpdated={(updated) => {
+            replaceInLocalState(infoPokemon, updated);
+            setInfoPokemon(updated);
+          }}
+        />
       )}
       {levelUpInfo && (
         <LevelUpModal

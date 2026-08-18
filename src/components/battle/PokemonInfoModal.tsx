@@ -16,9 +16,21 @@ export interface PokemonInfoModalProps {
    * shown from TeamChanger) — mid-battle or pre-catch views shouldn't set this.
    */
   allowTeachMove?: boolean;
+  /**
+   * Called with the new reference after a TM is taught. Callers holding their own copy of
+   * `pokemon` (e.g. TeamChanger's local active/inactive lists) must adopt it — gameStateEngine
+   * methods like setActiveTeam key off exact identity, so a stale reference breaks later on.
+   */
+  onPokemonUpdated?: (updated: AlivePokemon) => void;
 }
 
-export function PokemonInfoModal({ pokemon, onClose, onConfirm, allowTeachMove }: PokemonInfoModalProps) {
+export function PokemonInfoModal({
+  pokemon,
+  onClose,
+  onConfirm,
+  allowTeachMove,
+  onPokemonUpdated,
+}: PokemonInfoModalProps) {
   const gameState = useGameState();
   const [teachMoveIndex, setTeachMoveIndex] = useState<number | null>(null);
 
@@ -45,7 +57,8 @@ export function PokemonInfoModal({ pokemon, onClose, onConfirm, allowTeachMove }
 
   function handleSelectTM(tm: OwnedTM) {
     if (teachMoveIndex === null) return;
-    gameStateEngine.teachMove(displayPokemon as AlivePokemon, teachMoveIndex, tm);
+    const updated = gameStateEngine.teachMove(displayPokemon as AlivePokemon, teachMoveIndex, tm);
+    onPokemonUpdated?.(updated);
     setTeachMoveIndex(null);
   }
 
@@ -123,7 +136,12 @@ export function PokemonInfoModal({ pokemon, onClose, onConfirm, allowTeachMove }
       </div>
 
       {teachMoveIndex !== null && (
-        <TMSelectModal tms={gameState.tms} onSelect={handleSelectTM} onClose={() => setTeachMoveIndex(null)} />
+        <TMSelectModal
+          pokemon={displayPokemon}
+          tms={gameState.tms}
+          onSelect={handleSelectTM}
+          onClose={() => setTeachMoveIndex(null)}
+        />
       )}
     </>
   );
