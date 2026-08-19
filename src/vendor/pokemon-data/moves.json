@@ -7784,20 +7784,6 @@
     "accuracy": "90%"
   },
   {
-    "id": "557",
-    "name": {
-      "english": "V-create",
-      "japanese": "Ｖジェネレート",
-      "chinese": " Ｖ热焰",
-      "french": "Coup Victoire*"
-    },
-    "type": "Fire",
-    "category": "Physical",
-    "pp": "5",
-    "power": "180",
-    "accuracy": "95%"
-  },
-  {
     "id": "558",
     "name": {
       "english": "Fusion Flare",
@@ -9198,20 +9184,6 @@
     "accuracy": "—"
   },
   {
-    "id": "658",
-    "name": {
-      "english": "Catastropika",
-      "japanese": "ひっさつのピカチュート",
-      "french": "Pikachute Foudroyante",
-      "chinese": "皮卡皮卡必杀击"
-    },
-    "type": "Electric",
-    "category": "Physical",
-    "pp": "1",
-    "power": "210",
-    "accuracy": "—"
-  },
-  {
     "id": "659",
     "name": {
       "english": "Shore Up",
@@ -9716,48 +9688,6 @@
     "accuracy": "—"
   },
   {
-    "id": "695",
-    "name": {
-      "english": "Sinister Arrow Raid",
-      "japanese": "シャドーアローズストライク",
-      "french": "Fureur des Plumes Spectrales",
-      "chinese": "遮天蔽日暗影箭"
-    },
-    "type": "Ghost",
-    "category": "Physical",
-    "pp": "1",
-    "power": "180",
-    "accuracy": "—"
-  },
-  {
-    "id": "696",
-    "name": {
-      "english": "Malicious Moonsault",
-      "japanese": "ハイパーダーククラッシャー",
-      "french": "Dark Body Press",
-      "chinese": "极恶飞跃粉碎击"
-    },
-    "type": "Dark",
-    "category": "Physical",
-    "pp": "1",
-    "power": "180",
-    "accuracy": "—"
-  },
-  {
-    "id": "697",
-    "name": {
-      "english": "Oceanic Operetta",
-      "japanese": "わだつみのシンフォニア",
-      "french": "Symphonie des Ondines",
-      "chinese": "海神庄严交响乐"
-    },
-    "type": "Water",
-    "category": "Special",
-    "pp": "1",
-    "power": "195",
-    "accuracy": "—"
-  },
-  {
     "id": "698",
     "name": {
       "english": "Guardian of Alola",
@@ -9772,48 +9702,6 @@
     "accuracy": "—"
   },
   {
-    "id": "699",
-    "name": {
-      "english": "Soul-Stealing 7-Star Strike",
-      "japanese": "七星奪魂腿",
-      "french": "Fauche-Âme des Sept Étoiles",
-      "chinese": "七星夺魂腿"
-    },
-    "type": "Ghost",
-    "category": "Physical",
-    "pp": "1",
-    "power": "195",
-    "accuracy": "—"
-  },
-  {
-    "id": "700",
-    "name": {
-      "english": "Stoked Sparksurfer",
-      "japanese": "ライトニングサーフライド",
-      "french": "Électro-Surf Survolté",
-      "chinese": "驾雷驭电戏冲浪"
-    },
-    "type": "Electric",
-    "category": "Special",
-    "pp": "1",
-    "power": "175",
-    "accuracy": "—"
-  },
-  {
-    "id": "701",
-    "name": {
-      "english": "Pulverizing Pancake",
-      "japanese": "ほんきをだすこうげき",
-      "french": "Gare au Ronflex",
-      "chinese": "认真起来大爆击"
-    },
-    "type": "Normal",
-    "category": "Physical",
-    "pp": "1",
-    "power": "210",
-    "accuracy": "—"
-  },
-  {
     "id": "702",
     "name": {
       "english": "Extreme Evoboost",
@@ -9825,20 +9713,6 @@
     "category": "Status",
     "pp": "1",
     "power": "—",
-    "accuracy": "—"
-  },
-  {
-    "id": "703",
-    "name": {
-      "english": "Genesis Supernova",
-      "japanese": "オリジンズスーパーノヴァ",
-      "french": "Supernova Originelle",
-      "chinese": "起源超新星大爆炸"
-    },
-    "type": "Psychic",
-    "category": "Special",
-    "pp": "1",
-    "power": "185",
     "accuracy": "—"
   },
   {
@@ -10052,20 +9926,6 @@
     "accuracy": "100%"
   },
   {
-    "id": "719",
-    "name": {
-      "english": "10,000,000 Volt Thunderbolt",
-      "japanese": "1000まんボルト",
-      "french": "Giga-Tonnerre",
-      "chinese": "千万伏特"
-    },
-    "type": "Electric",
-    "category": "Special",
-    "pp": "1",
-    "power": "195",
-    "accuracy": "—"
-  },
-  {
     "id": "720",
     "name": {
       "english": "Mind Blown",
@@ -10106,90 +9966,6 @@
     "pp": "5",
     "power": "100",
     "accuracy": "100%"
-  },
-  {
-    "id": "723",
-    "name": {
-      "english": "Light That Burns the Sky",
-      "japanese": "天焦がす滅亡の光",
-      "french": "Apocalypsis Luminis",
-      "chinese": "焚天灭世炽光爆"
-    },
-    "type": "Psychic",
-    "category": "Special",
-    "pp": "1",
-    "power": "200",
-    "accuracy": "—"
-  },
-  {
-    "id": "724",
-    "name": {
-      "english": "Searing Sunraze Smash",
-      "japanese": "サンシャインスマッシャー",
-      "french": "Hélio-Choc Dévastateur",
-      "chinese": "日光回旋下苍穹"
-    },
-    "type": "Steel",
-    "category": "Physical",
-    "pp": "1",
-    "power": "200",
-    "accuracy": "—"
-  },
-  {
-    "id": "725",
-    "name": {
-      "english": "Menacing Moonraze Maelstrom",
-      "japanese": "ムーンライトブラスター",
-      "french": "Rayons Séléno-Explosifs",
-      "chinese": "月华飞溅落灵霄"
-    },
-    "type": "Ghost",
-    "category": "Special",
-    "pp": "1",
-    "power": "200",
-    "accuracy": "—"
-  },
-  {
-    "id": "726",
-    "name": {
-      "english": "Let's Snuggle Forever",
-      "japanese": "ぽかぼかフレンドタイム",
-      "french": "Patati-Patattrape",
-      "chinese": "亲密无间大乱揍"
-    },
-    "type": "Fairy",
-    "category": "Physical",
-    "pp": "1",
-    "power": "190",
-    "accuracy": "—"
-  },
-  {
-    "id": "727",
-    "name": {
-      "english": "Splintered Stormshards",
-      "japanese": "ラジアルエッジストーム",
-      "french": "Hurlement des Roches-Lames",
-      "chinese": "狼啸石牙飓风暴"
-    },
-    "type": "Rock",
-    "category": "Physical",
-    "pp": "1",
-    "power": "190",
-    "accuracy": "—"
-  },
-  {
-    "id": "728",
-    "name": {
-      "english": "Clangorous Soulblaze",
-      "japanese": "ブレイジングソウルビート",
-      "french": "Dracacophonie Flamboyante",
-      "chinese": "炽魂热舞烈音爆"
-    },
-    "type": "Dragon",
-    "category": "Special",
-    "pp": "1",
-    "power": "185",
-    "accuracy": "—"
   },
   {
     "id": "729",
