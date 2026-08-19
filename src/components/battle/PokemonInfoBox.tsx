@@ -2,7 +2,19 @@ import type { StatusCode } from "../../battle/formatBattleLine";
 import type { TeamPokemon } from "../../engine/gameStateEngine";
 import { bulbapediaPokemonUrl, pokemonDbPokemonUrl } from "../../util/externalLinks";
 import { HpBar } from "./HpBar";
-import { TypeChip } from "./TypeChip";
+import { TypeChip, typeHexColor } from "./TypeChip";
+
+/** 15% opacity, as a two-digit hex alpha suffix on a #RRGGBB color. */
+const BACKGROUND_ALPHA = "26";
+
+/** A flat 15%-opacity tint for one type, or a 45deg diagonal gradient between two. */
+function typeBackground(types: string[]): string {
+  const [first, second] = types;
+  const firstColor = `${typeHexColor(first)}${BACKGROUND_ALPHA}`;
+  if (!second) return firstColor;
+  const secondColor = `${typeHexColor(second)}${BACKGROUND_ALPHA}`;
+  return `linear-gradient(45deg, ${firstColor}, ${secondColor})`;
+}
 
 export interface PokemonInfoBoxProps {
   pokemon: TeamPokemon;
@@ -66,7 +78,10 @@ export function PokemonInfoBox({
   const borderClass = status ? STATUS_BORDER_COLORS[status] : "border-slate-700";
 
   return (
-    <div className={`relative w-56 rounded-lg border-2 ${borderClass} bg-slate-100 px-3 py-2 shadow-md`}>
+    <div
+      className={`relative w-56 rounded-lg border-2 ${borderClass} px-3 py-2 shadow-md`}
+      style={{ background: typeBackground(pokemon.type) }}
+    >
       {status && <StatusChip status={status} position={statusChipPosition} />}
       <div className="flex items-center justify-between">
         <span className="text-sm font-bold text-slate-900 min-[600px]:text-base">{pokemon.name.english}</span>
