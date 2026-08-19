@@ -7,9 +7,11 @@ export interface MoveSelectMenuProps {
   moves: FourMoves;
   onSelectMove?: (move: Move) => void;
   onClose: () => void;
+  /** When provided, shows an effectiveness indicator on each move tile against a defender with these types. */
+  defenderTypes?: string[];
 }
 
-export function MoveSelectMenu({ moves, onSelectMove, onClose }: MoveSelectMenuProps) {
+export function MoveSelectMenu({ moves, onSelectMove, onClose, defenderTypes }: MoveSelectMenuProps) {
   const { selected, setSelected } = useGridSelection({
     itemCount: moves.length,
     columns: 2,
@@ -29,6 +31,7 @@ export function MoveSelectMenu({ moves, onSelectMove, onClose }: MoveSelectMenuP
             setSelected(index);
             onSelectMove?.(move);
           }}
+          defenderTypes={defenderTypes}
         />
       ))}
     </div>
