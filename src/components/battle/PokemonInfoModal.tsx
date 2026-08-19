@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { AlivePokemon, OwnedTM, TeamPokemon } from "../../engine/gameStateEngine";
 import { gameStateEngine } from "../../engine/gameStateEngine";
 import { useGameState } from "../../engine/useGameState";
+import { MoveTile } from "./MoveTile";
 import { PokemonStatsList } from "./PokemonStatsList";
 import { TMSelectModal } from "./TMSelectModal";
 
@@ -88,12 +89,12 @@ export function PokemonInfoModal({
           <PokemonStatsList pokemon={displayPokemon} />
 
           <h3 className="mt-2 font-semibold">Moves</h3>
-          <ul>
+          <div className="grid grid-cols-1 gap-1.5 min-[600px]:grid-cols-2">
             {displayPokemon.moves.map((move, index) => (
-              <li key={index} className="flex items-center justify-between gap-2">
-                <span>
-                  {move.name.english} ({move.type})
-                </span>
+              <div key={index} className="flex items-stretch gap-1">
+                <div className="min-w-0 flex-1">
+                  <MoveTile move={move} />
+                </div>
                 {allowTeachMove && (
                   <button
                     type="button"
@@ -103,9 +104,9 @@ export function PokemonInfoModal({
                     TM
                   </button>
                 )}
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
 
           <div className="mt-3 border-t border-slate-200 pt-2 text-xs text-slate-600 min-[600px]:text-sm">
             {translations.map((line) => (
