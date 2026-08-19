@@ -25,7 +25,7 @@ export function LevelUpModal({ pokemon, fromName, moveChoice, onClose }: LevelUp
       onClick={moveChoice ? undefined : onClose}
     >
       <div
-        className="w-80 rounded-md bg-white p-4 text-center text-sm text-slate-900 min-[600px]:text-base"
+        className="w-[90vw] max-w-[500px] rounded-md bg-white p-4 text-center text-sm text-slate-900 min-[600px]:text-base"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-2">
