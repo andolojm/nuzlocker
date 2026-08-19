@@ -2422,20 +2422,6 @@
     "accuracy": "100%"
   },
   {
-    "id": "174",
-    "name": {
-      "english": "Curse",
-      "japanese": "のろい",
-      "chinese": " 诅咒",
-      "french": "Malédiction"
-    },
-    "type": "Ghost",
-    "category": "Status",
-    "pp": "10",
-    "power": "—",
-    "accuracy": "—"
-  },
-  {
     "id": "175",
     "name": {
       "english": "Flail",
@@ -2448,20 +2434,6 @@
     "pp": "15",
     "power": "—",
     "accuracy": "100%"
-  },
-  {
-    "id": "176",
-    "name": {
-      "english": "Conversion 2",
-      "japanese": "テクスチャー２",
-      "chinese": " 纹理２",
-      "french": "Conversion2*"
-    },
-    "type": "Normal",
-    "category": "Status",
-    "pp": "30",
-    "power": "—",
-    "accuracy": "—"
   },
   {
     "id": "177",
@@ -2700,20 +2672,6 @@
     "pp": "40",
     "power": "—",
     "accuracy": "—*"
-  },
-  {
-    "id": "194",
-    "name": {
-      "english": "Destiny Bond",
-      "japanese": "みちづれ",
-      "french": "Prélèvem. Destin*",
-      "chinese": "同命"
-    },
-    "type": "Ghost",
-    "category": "Status",
-    "pp": "5",
-    "power": "—",
-    "accuracy": "—"
   },
   {
     "id": "195",
@@ -3710,20 +3668,6 @@
     "accuracy": "100%"
   },
   {
-    "id": "266",
-    "name": {
-      "english": "Follow Me",
-      "japanese": "このゆびとまれ",
-      "french": "Par Ici",
-      "chinese": "看我嘛"
-    },
-    "type": "Normal",
-    "category": "Status",
-    "pp": "20",
-    "power": "—",
-    "accuracy": "—"
-  },
-  {
     "id": "267",
     "name": {
       "english": "Nature Power",
@@ -3818,20 +3762,6 @@
     "type": "Normal",
     "category": "Status",
     "pp": "10",
-    "power": "—",
-    "accuracy": "—"
-  },
-  {
-    "id": "274",
-    "name": {
-      "english": "Assist",
-      "japanese": "ねこのて",
-      "french": "Assistance",
-      "chinese": "借助"
-    },
-    "type": "Normal",
-    "category": "Status",
-    "pp": "20",
     "power": "—",
     "accuracy": "—"
   },
@@ -4014,20 +3944,6 @@
     "type": "Normal",
     "category": "Status",
     "pp": "20",
-    "power": "—",
-    "accuracy": "—"
-  },
-  {
-    "id": "288",
-    "name": {
-      "english": "Grudge",
-      "japanese": "おんねん",
-      "french": "Rancune",
-      "chinese": "怨念"
-    },
-    "type": "Ghost",
-    "category": "Status",
-    "pp": "5",
     "power": "—",
     "accuracy": "—"
   },
@@ -5304,20 +5220,6 @@
     "pp": "10",
     "power": "—",
     "accuracy": "—"
-  },
-  {
-    "id": "380",
-    "name": {
-      "english": "Gastro Acid",
-      "japanese": "いえき",
-      "french": "Suc Digestif",
-      "chinese": "胃液"
-    },
-    "type": "Poison",
-    "category": "Status",
-    "pp": "10",
-    "power": "—",
-    "accuracy": "100%"
   },
   {
     "id": "381",
@@ -6902,34 +6804,6 @@
     "accuracy": "100%"
   },
   {
-    "id": "494",
-    "name": {
-      "english": "Entrainment",
-      "japanese": "なかまづくり",
-      "chinese": " 找伙伴",
-      "french": "Ten-danse"
-    },
-    "type": "Normal",
-    "category": "Status",
-    "pp": "15",
-    "power": "—",
-    "accuracy": "100%"
-  },
-  {
-    "id": "495",
-    "name": {
-      "english": "After You",
-      "japanese": "おさきにどうぞ",
-      "chinese": " 您先请",
-      "french": "Après Vous"
-    },
-    "type": "Normal",
-    "category": "Status",
-    "pp": "15",
-    "power": "—",
-    "accuracy": "—"
-  },
-  {
     "id": "496",
     "name": {
       "english": "Round",
@@ -8414,20 +8288,6 @@
     "accuracy": "—"
   },
   {
-    "id": "603",
-    "name": {
-      "english": "Happy Hour",
-      "japanese": "ハッピータイム",
-      "french": "Étrennes",
-      "chinese": "欢乐时光"
-    },
-    "type": "Normal",
-    "category": "Status",
-    "pp": "30",
-    "power": "—",
-    "accuracy": "—"
-  },
-  {
     "id": "604",
     "name": {
       "english": "Electric Terrain",
@@ -8454,20 +8314,6 @@
     "pp": "10",
     "power": "80",
     "accuracy": "100%"
-  },
-  {
-    "id": "606",
-    "name": {
-      "english": "Celebrate",
-      "japanese": "おいわい",
-      "french": "Célébration",
-      "chinese": "庆祝"
-    },
-    "type": "Normal",
-    "category": "Status",
-    "pp": "40",
-    "power": "—",
-    "accuracy": "—"
   },
   {
     "id": "607",
@@ -9390,20 +9236,6 @@
     "type": "Normal",
     "category": "Status",
     "pp": "30",
-    "power": "—",
-    "accuracy": "—"
-  },
-  {
-    "id": "674",
-    "name": {
-      "english": "Gear Up",
-      "japanese": "アシストギア",
-      "french": "Engrenage",
-      "chinese": "辅助齿轮"
-    },
-    "type": "Steel",
-    "category": "Status",
-    "pp": "20",
     "power": "—",
     "accuracy": "—"
   },
