@@ -2002,20 +2002,6 @@
     "accuracy": "90%"
   },
   {
-    "id": "144",
-    "name": {
-      "english": "Transform",
-      "japanese": "へんしん",
-      "chinese": " 变身",
-      "french": "Morphing"
-    },
-    "type": "Normal",
-    "category": "Status",
-    "pp": "10",
-    "power": "—",
-    "accuracy": "—"
-  },
-  {
     "id": "145",
     "name": {
       "english": "Bubble",
@@ -3738,20 +3724,6 @@
     "accuracy": "100%"
   },
   {
-    "id": "272",
-    "name": {
-      "english": "Role Play",
-      "japanese": "なりきり",
-      "french": "Imitation",
-      "chinese": "扮演"
-    },
-    "type": "Psychic",
-    "category": "Status",
-    "pp": "10",
-    "power": "—",
-    "accuracy": "—"
-  },
-  {
     "id": "273",
     "name": {
       "english": "Wish",
@@ -3904,20 +3876,6 @@
     "pp": "5",
     "power": "150",
     "accuracy": "100%"
-  },
-  {
-    "id": "285",
-    "name": {
-      "english": "Skill Swap",
-      "japanese": "スキルスワップ",
-      "chinese": " 特性互换",
-      "french": "Échange"
-    },
-    "type": "Psychic",
-    "category": "Status",
-    "pp": "10",
-    "power": "—",
-    "accuracy": "—"
   },
   {
     "id": "286",
@@ -5317,20 +5275,6 @@
     "category": "Physical",
     "pp": "5",
     "power": "140*",
-    "accuracy": "100%"
-  },
-  {
-    "id": "388",
-    "name": {
-      "english": "Worry Seed",
-      "japanese": "なやみのタネ",
-      "chinese": " 烦恼种子",
-      "french": "Soucigraine"
-    },
-    "type": "Grass",
-    "category": "Status",
-    "pp": "10",
-    "power": "—",
     "accuracy": "100%"
   },
   {
@@ -6787,20 +6731,6 @@
     "category": "Physical",
     "pp": "15",
     "power": "95",
-    "accuracy": "100%"
-  },
-  {
-    "id": "493",
-    "name": {
-      "english": "Simple Beam",
-      "japanese": "シンプルビーム",
-      "chinese": " 单纯光束",
-      "french": "Rayon Simple"
-    },
-    "type": "Normal",
-    "category": "Status",
-    "pp": "15",
-    "power": "—",
     "accuracy": "100%"
   },
   {
@@ -8890,20 +8820,6 @@
     "accuracy": "100%"
   },
   {
-    "id": "687",
-    "name": {
-      "english": "Core Enforcer",
-      "japanese": "コアパニッシャー",
-      "french": "Sanction Suprême",
-      "chinese": "核心惩罚者"
-    },
-    "type": "Dragon",
-    "category": "Special",
-    "pp": "10",
-    "power": "100",
-    "accuracy": "100%"
-  },
-  {
     "id": "688",
     "name": {
       "english": "Trop Kick",
@@ -9156,34 +9072,6 @@
     "accuracy": "100%"
   },
   {
-    "id": "713",
-    "name": {
-      "english": "Sunsteel Strike",
-      "japanese": "メテオドライブ",
-      "french": "Choc Météore",
-      "chinese": "流星闪冲"
-    },
-    "type": "Steel",
-    "category": "Physical",
-    "pp": "5",
-    "power": "100",
-    "accuracy": "100%"
-  },
-  {
-    "id": "714",
-    "name": {
-      "english": "Moongeist Beam",
-      "japanese": "シャドーレイ",
-      "french": "Rayon Spectral",
-      "chinese": "暗影之光"
-    },
-    "type": "Ghost",
-    "category": "Special",
-    "pp": "5",
-    "power": "100",
-    "accuracy": "100%"
-  },
-  {
     "id": "715",
     "name": {
       "english": "Tearful Look",
@@ -9264,20 +9152,6 @@
     "type": "Electric",
     "category": "Physical",
     "pp": "15",
-    "power": "100",
-    "accuracy": "100%"
-  },
-  {
-    "id": "722",
-    "name": {
-      "english": "Photon Geyser",
-      "japanese": "フォトンゲイザー",
-      "french": "Photo-Geyser",
-      "chinese": "光子喷涌"
-    },
-    "type": "Psychic",
-    "category": "Special",
-    "pp": "5",
     "power": "100",
     "accuracy": "100%"
   },
