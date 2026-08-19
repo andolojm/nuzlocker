@@ -6,6 +6,7 @@ import { MAX_ACTIVE_TEAM_SIZE, gameStateEngine } from "../../engine/gameStateEng
 import type { AlivePokemon, FourMoves, TeamPokemon } from "../../engine/gameStateEngine";
 import { nextMoveLearnLevel, rollLearnableMove } from "../../engine/moveLearning";
 import { LevelUpModal } from "./LevelUpModal";
+import { PartyNotFullWarningModal } from "./PartyNotFullWarningModal";
 import { PokemonInfoModal } from "./PokemonInfoModal";
 import { PokemonTile } from "./PokemonTile";
 
@@ -35,6 +36,7 @@ export function TeamChanger({ alivePokemon, levelCap, onSubmit }: TeamChangerPro
   );
   const [infoPokemon, setInfoPokemon] = useState<AlivePokemon | null>(null);
   const [levelUpInfo, setLevelUpInfo] = useState<LevelUpInfo | null>(null);
+  const [showPartyWarning, setShowPartyWarning] = useState(false);
 
   function moveToInactive(pokemon: AlivePokemon) {
     setActive((current) => current.filter((p) => p !== pokemon));
@@ -222,12 +224,28 @@ export function TeamChanger({ alivePokemon, levelCap, onSubmit }: TeamChangerPro
         <button
           type="button"
           disabled={active.length === 0}
-          onClick={() => onSubmit(active)}
+          onClick={() => {
+            if (active.length < MAX_ACTIVE_TEAM_SIZE && inactive.length > 0) {
+              setShowPartyWarning(true);
+            } else {
+              onSubmit(active);
+            }
+          }}
           className="rounded-md bg-slate-800 px-6 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-400"
         >
           SUBMIT
         </button>
       </div>
+
+      {showPartyWarning && (
+        <PartyNotFullWarningModal
+          onBack={() => setShowPartyWarning(false)}
+          onProceed={() => {
+            setShowPartyWarning(false);
+            onSubmit(active);
+          }}
+        />
+      )}
 
       {infoPokemon && (
         <PokemonInfoModal
