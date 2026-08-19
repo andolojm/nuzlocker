@@ -77,7 +77,7 @@ export function BattleScreen({
 
   return (
     <div className="relative overflow-hidden rounded-xl border-4 border-slate-800 shadow-xl max-[750px]:-mx-6">
-      <div className="relative h-110 bg-gradient-to-b from-sky-300 via-sky-200 to-green-400">
+      <div className="relative h-110 bg-transparent">
         <div className="absolute top-4 left-4">
           <PokemonInfoBox
             pokemon={opponentPokemon}
