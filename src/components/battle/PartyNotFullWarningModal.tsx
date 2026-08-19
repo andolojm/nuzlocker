@@ -1,11 +1,13 @@
 export interface PartyNotFullWarningModalProps {
+  /** One or more "Warning: ..." messages, each rendered on its own line. */
+  messages: string[];
   /** Dismisses the modal and returns to team selection. */
   onBack: () => void;
-  /** Proceeds to battle with the currently selected (not-full) active team. */
+  /** Proceeds to battle with the currently selected team, despite the warning(s). */
   onProceed: () => void;
 }
 
-export function PartyNotFullWarningModal({ onBack, onProceed }: PartyNotFullWarningModalProps) {
+export function PartyNotFullWarningModal({ messages, onBack, onProceed }: PartyNotFullWarningModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onBack}>
       <div
@@ -13,7 +15,13 @@ export function PartyNotFullWarningModal({ onBack, onProceed }: PartyNotFullWarn
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-2">
-          <p className="font-bold">Warning: Party's not full</p>
+          <div>
+            {messages.map((message) => (
+              <p key={message} className="font-bold">
+                {message}
+              </p>
+            ))}
+          </div>
           <button type="button" onClick={onBack} aria-label="Close" className="shrink-0">
             ✕
           </button>

@@ -36,7 +36,7 @@ export function TeamChanger({ alivePokemon, levelCap, onSubmit }: TeamChangerPro
   );
   const [infoPokemon, setInfoPokemon] = useState<AlivePokemon | null>(null);
   const [levelUpInfo, setLevelUpInfo] = useState<LevelUpInfo | null>(null);
-  const [showPartyWarning, setShowPartyWarning] = useState(false);
+  const [partyWarnings, setPartyWarnings] = useState<string[]>([]);
 
   function moveToInactive(pokemon: AlivePokemon) {
     setActive((current) => current.filter((p) => p !== pokemon));
@@ -225,8 +225,16 @@ export function TeamChanger({ alivePokemon, levelCap, onSubmit }: TeamChangerPro
           type="button"
           disabled={active.length === 0}
           onClick={() => {
+            const warnings: string[] = [];
             if (active.length < MAX_ACTIVE_TEAM_SIZE && inactive.length > 0) {
-              setShowPartyWarning(true);
+              warnings.push("Warning: Party's not full");
+            }
+            if (active.some((pokemon) => pokemon.level < levelCap)) {
+              warnings.push("Warning: Party Under Level Cap");
+            }
+
+            if (warnings.length > 0) {
+              setPartyWarnings(warnings);
             } else {
               onSubmit(active);
             }
@@ -237,11 +245,12 @@ export function TeamChanger({ alivePokemon, levelCap, onSubmit }: TeamChangerPro
         </button>
       </div>
 
-      {showPartyWarning && (
+      {partyWarnings.length > 0 && (
         <PartyNotFullWarningModal
-          onBack={() => setShowPartyWarning(false)}
+          messages={partyWarnings}
+          onBack={() => setPartyWarnings([])}
           onProceed={() => {
-            setShowPartyWarning(false);
+            setPartyWarnings([]);
             onSubmit(active);
           }}
         />
