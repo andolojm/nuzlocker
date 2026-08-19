@@ -8274,20 +8274,6 @@
     "accuracy": "—"
   },
   {
-    "id": "602",
-    "name": {
-      "english": "Magnetic Flux",
-      "japanese": "じばそうさ",
-      "french": "Magné-Contrôle",
-      "chinese": "磁场操控"
-    },
-    "type": "Electric",
-    "category": "Status",
-    "pp": "20",
-    "power": "—",
-    "accuracy": "—"
-  },
-  {
     "id": "604",
     "name": {
       "english": "Electric Terrain",
