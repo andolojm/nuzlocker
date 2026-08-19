@@ -78,7 +78,7 @@ function StarterOption({ pokemon, onClick }: StarterOptionProps) {
       <img
         src={pokemon.image.hires}
         alt={pokemon.name.english}
-        className="h-16 w-16 object-contain [image-rendering:pixelated] transition-transform hover:scale-110"
+        className="h-32 w-32 object-contain [image-rendering:pixelated] transition-transform hover:scale-110"
       />
       <span className="text-sm font-semibold text-slate-800">{pokemon.name.english}</span>
     </button>
