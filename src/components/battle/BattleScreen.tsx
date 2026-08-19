@@ -79,7 +79,12 @@ export function BattleScreen({
     <div className="relative overflow-hidden rounded-xl border-4 border-slate-800 shadow-xl max-[750px]:-mx-6">
       <div className="relative h-110 bg-gradient-to-b from-sky-300 via-sky-200 to-green-400">
         <div className="absolute top-4 left-4">
-          <PokemonInfoBox pokemon={opponentPokemon} hp={opponentHp} status={opponentStatus} />
+          <PokemonInfoBox
+            pokemon={opponentPokemon}
+            hp={opponentHp}
+            status={opponentStatus}
+            statusChipPosition="bottom-right"
+          />
         </div>
         <img
           src={opponentPokemon.image.hires}
@@ -97,6 +102,7 @@ export function BattleScreen({
             pokemon={playerPokemon}
             hp={playerHp}
             status={playerStatus}
+            statusChipPosition="top-left"
             onInfoClick={() => setShowPlayerInfo(true)}
           />
         </div>

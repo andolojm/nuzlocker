@@ -7,6 +7,8 @@ export interface PokemonInfoBoxProps {
   pokemon: TeamPokemon;
   hp: { current: number; max: number };
   status?: StatusCode | null;
+  /** Where the status chip hangs outside the box's border. Defaults to "bottom-right". */
+  statusChipPosition?: "top-left" | "bottom-right";
   /** Renders an "INFO" link that opens the PokemonInfoModal. Omit to hide it. */
   onInfoClick?: () => void;
 }
@@ -29,10 +31,24 @@ const STATUS_COLORS: Record<StatusCode, string> = {
   tox: "bg-purple-500",
 };
 
-function StatusChip({ status }: { status: StatusCode }) {
+const STATUS_BORDER_COLORS: Record<StatusCode, string> = {
+  brn: "border-orange-500",
+  par: "border-yellow-500",
+  slp: "border-slate-400",
+  frz: "border-cyan-400",
+  psn: "border-purple-500",
+  tox: "border-purple-500",
+};
+
+const CHIP_POSITION_CLASSES: Record<"top-left" | "bottom-right", string> = {
+  "top-left": "-top-2 -left-2",
+  "bottom-right": "-bottom-2 -right-2",
+};
+
+function StatusChip({ status, position }: { status: StatusCode; position: "top-left" | "bottom-right" }) {
   return (
     <span
-      className={`rounded px-1.5 py-0.5 text-[10px] font-bold text-white min-[600px]:text-xs ${STATUS_COLORS[status]}`}
+      className={`absolute ${CHIP_POSITION_CLASSES[position]} rounded px-1.5 py-0.5 text-[10px] font-bold text-white shadow min-[600px]:text-xs ${STATUS_COLORS[status]}`}
     >
       {STATUS_LABELS[status]}
     </span>
@@ -70,15 +86,21 @@ function TypeChip({ type }: { type: string }) {
   );
 }
 
-export function PokemonInfoBox({ pokemon, hp, status, onInfoClick }: PokemonInfoBoxProps) {
+export function PokemonInfoBox({
+  pokemon,
+  hp,
+  status,
+  statusChipPosition = "bottom-right",
+  onInfoClick,
+}: PokemonInfoBoxProps) {
+  const borderClass = status ? STATUS_BORDER_COLORS[status] : "border-slate-700";
+
   return (
-    <div className="w-56 rounded-lg border-2 border-slate-700 bg-slate-100 px-3 py-2 shadow-md">
+    <div className={`relative w-56 rounded-lg border-2 ${borderClass} bg-slate-100 px-3 py-2 shadow-md`}>
+      {status && <StatusChip status={status} position={statusChipPosition} />}
       <div className="flex items-center justify-between">
         <span className="text-sm font-bold text-slate-900 min-[600px]:text-base">{pokemon.name.english}</span>
-        <div className="flex items-center gap-1.5">
-          {status && <StatusChip status={status} />}
-          <span className="text-xs font-semibold text-slate-700 min-[600px]:text-sm">Lv{pokemon.level}</span>
-        </div>
+        <span className="text-xs font-semibold text-slate-700 min-[600px]:text-sm">Lv{pokemon.level}</span>
       </div>
       <div className="mt-1.5">
         <HpBar current={hp.current} max={hp.max} />
