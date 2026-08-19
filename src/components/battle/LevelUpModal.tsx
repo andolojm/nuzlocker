@@ -2,6 +2,7 @@ import type { Move } from "../../api/pikaserve";
 import type { FourMoves, TeamPokemon } from "../../engine/gameStateEngine";
 import { MoveTile } from "./MoveTile";
 import { PokemonStatsList } from "./PokemonStatsList";
+import { TypeChip } from "./TypeChip";
 
 export interface LevelUpModalProps {
   /** Already-updated Pokemon — post level-up, and post-evolution if it evolved this click. */
@@ -47,7 +48,13 @@ export function LevelUpModal({ pokemon, fromName, moveChoice, onClose }: LevelUp
           className="mx-auto my-3 h-32 w-32 object-contain [image-rendering:pixelated]"
         />
 
-        <div className="text-left text-xs min-[600px]:text-sm">
+        <div className="flex justify-center gap-1">
+          {pokemon.type.map((type) => (
+            <TypeChip key={type} type={type} />
+          ))}
+        </div>
+
+        <div className="mt-2 text-left text-xs min-[600px]:text-sm">
           <h3 className="text-center font-semibold">Stats / IVs</h3>
           <PokemonStatsList pokemon={pokemon} />
         </div>
