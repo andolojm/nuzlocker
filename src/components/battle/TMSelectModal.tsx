@@ -45,7 +45,6 @@ export function TMSelectModal({ pokemon, tms, onSelect, onClose }: TMSelectModal
           <ul className="mt-3 space-y-2">
             {tms.map((tm, index) => (
               <li key={index}>
-                <p className="mb-0.5 text-xs font-semibold text-slate-600">{tm.name.english}</p>
                 <MoveTile move={tm.move} onClick={() => onSelect(tm)} />
               </li>
             ))}

@@ -154,39 +154,29 @@ describe("PikaLocal", () => {
   });
 
   describe("TMs", () => {
-    it("getAllTMs returns only Machines items, each with parsed move names", async () => {
-      const tms = await PikaLocal.getAllTMs();
+    it("getAllTMs returns exactly one TM per move", async () => {
+      const [tms, moves] = await Promise.all([PikaLocal.getAllTMs(), PikaLocal.getAllMoves()]);
 
-      expect(tms.length).toBeGreaterThan(0);
+      expect(tms).toHaveLength(moves.length);
       for (const tm of tms) {
-        expect(tm.moveNames.length).toBeGreaterThan(0);
+        expect(typeof tm.id).toBe("number");
+        expect(typeof tm.move.name.english).toBe("string");
       }
-      const tm01 = tms.find((tm) => tm.name.english === "TM01");
-      expect(tm01?.moveNames).toContain("Mega Punch");
     });
 
-    it("includes HMs alongside TMs", async () => {
-      const tms = await PikaLocal.getAllTMs();
+    it("a TM's id is its move's own id", async () => {
+      const move = await PikaLocal.getMove("Tackle");
 
-      const hm01 = tms.find((tm) => tm.name.english === "HM01");
-      expect(hm01?.moveNames).toEqual(["Cut"]);
-    });
+      const tm = await PikaLocal.getTM(Number(move.id));
 
-    it("excludes Gen 8 TRs whose description describes the move's effect instead of naming it", async () => {
-      const tms = await PikaLocal.getAllTMs();
-
-      // Most TRs (TR01-TR100, minus a handful of exceptions with a well-formed description — see
-      // isTMItem's test) have prose effect descriptions instead of "Teaches the move X.", which
-      // can't be parsed into a real move name and should be filtered out by getAllTMs.
-      const tr01 = tms.find((tm) => tm.name.english === "TR01");
-      expect(tr01).toBeUndefined();
+      expect(tm.move.name.english).toBe("Tackle");
     });
 
     it("getRandomTM returns a single TM", async () => {
       const tm = await PikaLocal.getRandomTM();
 
-      expect(typeof tm.name.english).toBe("string");
-      expect(tm.moveNames.length).toBeGreaterThan(0);
+      expect(typeof tm.id).toBe("number");
+      expect(typeof tm.move.name.english).toBe("string");
     });
 
     it("getRandomTM picks by index using the injected RNG", async () => {
@@ -197,6 +187,10 @@ describe("PikaLocal", () => {
 
       expect(first).toEqual(tms[0]);
       expect(last).toEqual(tms[tms.length - 1]);
+    });
+
+    it("getTM throws PikaLocalNotFoundError for an unknown id", async () => {
+      await expect(PikaLocal.getTM(-1)).rejects.toThrow(PikaLocalNotFoundError);
     });
   });
 

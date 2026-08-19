@@ -1,4 +1,4 @@
-import type { Item, LocalizedName, Move, Pokemon } from "../api/pikaserve";
+import type { Item, Move, Pokemon, TM } from "../api/pikaserve";
 import type { StageType } from "./stage";
 
 export type FourMoves = [Move, Move, Move, Move];
@@ -43,12 +43,8 @@ export interface AlivePokemon extends TeamPokemon {
   active?: number;
 }
 
-/** A TM/HM in the player's possession, already resolved to the one specific move it teaches. */
-export interface OwnedTM {
-  id: number;
-  name: LocalizedName;
-  move: Move;
-}
+/** A TM in the player's possession. */
+export type OwnedTM = TM;
 
 export const MAX_ACTIVE_TEAM_SIZE = 6;
 
@@ -233,7 +229,7 @@ export class GameStateEngine {
 
     const tmIndex = this.gameState.tms.indexOf(tm);
     if (tmIndex === -1) {
-      throw new Error(`TM "${tm.name.english}" is not in the tms list`);
+      throw new Error(`TM for "${tm.move.name.english}" is not in the tms list`);
     }
 
     if (moveIndex < 0 || moveIndex > 3) {

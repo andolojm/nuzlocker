@@ -44,7 +44,7 @@ export function OutcomeModal({ variant, onAdvance, awardedTMs = [] }: OutcomeMod
             <ul className="mt-1 space-y-0.5">
               {awardedTMs.map((tm, index) => (
                 <li key={index} className="text-xs font-semibold text-slate-200">
-                  {tm.name.english} — {tm.move.name.english}
+                  {tm.move.name.english}
                 </li>
               ))}
             </ul>

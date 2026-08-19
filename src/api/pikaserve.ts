@@ -101,42 +101,10 @@ export interface Item {
   name: LocalizedName;
 }
 
-export const TM_ITEM_TYPE = "Machines";
-const TEACHES_PREFIX = /^Teaches the move /;
-
+/** A TM: every move is teachable, one-to-one, via its own TM (id doubles as the move's own id). */
 export interface TM {
   id: number;
-  name: LocalizedName;
-  /**
-   * Move names parsed from the item description. Usually just one, but PikaServe's data reuses
-   * TM numbers across generations, so some low-numbered TMs list several game-dependent
-   * alternatives (e.g. "Teaches the move Mega Punch/Dynamic Punch/Focus Punch/Hone Claws/Work Up/Headbutt.").
-   */
-  moveNames: string[];
-}
-
-/** Parses the move name(s) out of a Machines item's description, e.g. "Teaches the move Cut." -> ["Cut"]. */
-export function parseTMMoveNames(description: string): string[] {
-  return description
-    .replace(TEACHES_PREFIX, "")
-    .replace(/\.$/, "")
-    .split("/")
-    .map((name) => name.trim())
-    .filter(Boolean);
-}
-
-/**
- * True for classic TM/HM items (description "Teaches the move X."). Excludes Gen 8 TRs, which also
- * have item type "Machines" but describe the move's in-battle effect instead (e.g. "The user drops
- * onto the target with its full body weight...") — parseTMMoveNames can't extract a move name from
- * that shape, so treating them as TMs would produce an unresolvable TM (see resolveTM in tmRewards.ts).
- */
-export function isTMItem(item: Item): boolean {
-  return item.type === TM_ITEM_TYPE && TEACHES_PREFIX.test(item.description);
-}
-
-export function toTM(item: Item): TM {
-  return { id: item.id, name: item.name, moveNames: parseTMMoveNames(item.description) };
+  move: Move;
 }
 
 export interface PokemonType {

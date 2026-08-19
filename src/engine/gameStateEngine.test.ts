@@ -78,8 +78,7 @@ function buildItem(overrides: Partial<Item> = {}): Item {
 
 function buildOwnedTM(overrides: Partial<OwnedTM> = {}): OwnedTM {
   return {
-    id: 328,
-    name: { english: "TM01" },
+    id: 5,
     move: buildMove({ id: "5", name: { english: "Mega Punch" } }),
     ...overrides,
   };

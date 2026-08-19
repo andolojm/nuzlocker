@@ -20,7 +20,7 @@ import type {
   RawPokemon,
   TM,
 } from "./pikaserve";
-import { enrichPokemon, isTMItem, toTM } from "./pikaserve";
+import { enrichPokemon } from "./pikaserve";
 
 const pokedex = pokedexData as unknown as RawPokemon[];
 const moves = movesData as unknown as Move[];
@@ -155,16 +155,21 @@ export class PikaLocal {
     return findByIdOrName(items, nameOrId, (i) => i.id, (i) => i.name.english, "Item");
   }
 
+  /** Every move is its own TM, one-to-one — the TM's id is just the move's own id as a number. */
   static async getAllTMs(): Promise<TM[]> {
-    return items.filter(isTMItem).map(toTM);
+    return moves.map((move) => ({ id: Number(move.id), move }));
   }
 
   static async getRandomTM(random: () => number = Math.random): Promise<TM> {
     const tms = await PikaLocal.getAllTMs();
-    if (tms.length === 0) {
-      throw new Error("PikaLocal has no TMs");
-    }
     return tms[Math.floor(random() * tms.length)];
+  }
+
+  static async getTM(id: number): Promise<TM> {
+    const tms = await PikaLocal.getAllTMs();
+    const tm = tms.find((candidate) => candidate.id === id);
+    if (!tm) throw new PikaLocalNotFoundError("TM", id);
+    return tm;
   }
 
   static async getAllTypes(): Promise<PokemonType[]> {
