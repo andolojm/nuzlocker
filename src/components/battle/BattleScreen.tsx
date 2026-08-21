@@ -129,6 +129,7 @@ export function BattleScreen({
                   onSelectMove={handleSelectMove}
                   onClose={() => setOpenMenu("none")}
                   defenderTypes={opponentPokemon.type}
+                  attackerTypes={playerPokemon.type}
                   startSelected={submenuOpenedViaKeyboard}
                 />
               ) : openMenu === "pokemon" ? (

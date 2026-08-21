@@ -67,11 +67,20 @@ export function LevelUpModal({ pokemon, fromName, moveChoice, onClose }: LevelUp
             </p>
             <div className="mt-2 grid grid-cols-2 gap-1.5">
               {moveChoice.current.map((move, index) => (
-                <MoveTile key={`${move.id}-${index}`} move={move} onClick={() => moveChoice.onForget(index)} />
+                <MoveTile
+                  key={`${move.id}-${index}`}
+                  move={move}
+                  attackerTypes={pokemon.type}
+                  onClick={() => moveChoice.onForget(index)}
+                />
               ))}
             </div>
             <div className="mt-1.5">
-              <MoveTile move={moveChoice.learned} onClick={() => moveChoice.onForget(moveChoice.current.length)} />
+              <MoveTile
+                move={moveChoice.learned}
+                attackerTypes={pokemon.type}
+                onClick={() => moveChoice.onForget(moveChoice.current.length)}
+              />
             </div>
           </div>
         ) : (

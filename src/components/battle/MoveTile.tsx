@@ -9,6 +9,8 @@ export interface MoveTileProps {
   onClick?: () => void;
   /** When provided, shows an effectiveness indicator (arrows/X) for this move against a defender with these types. */
   defenderTypes?: string[];
+  /** When provided, shows a star next to the type chip for a non-Status move matching one of these types (STAB). */
+  attackerTypes?: string[];
 }
 
 /** Arrows/X hinting how effective a move is against `defenderTypes` — 2x/4x up, 0.5x/0.25x down, 0x an X. */
@@ -66,8 +68,9 @@ function EffectivenessIndicator({ moveType, defenderTypes }: { moveType: string;
 }
 
 /** A single move's tile, as used in the battle FIGHT menu — name/PWR/ACC on the left, PP/category/type chip on the right. */
-export function MoveTile({ move, selected = false, onClick, defenderTypes }: MoveTileProps) {
+export function MoveTile({ move, selected = false, onClick, defenderTypes, attackerTypes }: MoveTileProps) {
   const isStatus = move.category === "Status";
+  const isStab = !isStatus && (attackerTypes?.includes(move.type) ?? false);
 
   return (
     <div
@@ -114,11 +117,18 @@ export function MoveTile({ move, selected = false, onClick, defenderTypes }: Mov
       <div className="flex shrink-0 flex-col items-end text-[10px] leading-snug font-normal opacity-75">
         <div>{move.pp} PP</div>
         <div>{move.category}</div>
-        <span
-          className={`mt-1 rounded px-1 py-0.5 text-[8px] font-bold text-white ${TYPE_COLORS[move.type] ?? "bg-slate-400"}`}
-        >
-          {move.type.toUpperCase()}
-        </span>
+        <div className="mt-1 flex items-center gap-0.5">
+          {isStab && (
+            <span title="STAB: matches this Pokemon's type" aria-label="STAB move">
+              ⭐
+            </span>
+          )}
+          <span
+            className={`rounded px-1 py-0.5 text-[8px] font-bold text-white ${TYPE_COLORS[move.type] ?? "bg-slate-400"}`}
+          >
+            {move.type.toUpperCase()}
+          </span>
+        </div>
       </div>
     </div>
   );

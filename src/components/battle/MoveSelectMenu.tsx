@@ -9,6 +9,8 @@ export interface MoveSelectMenuProps {
   onClose: () => void;
   /** When provided, shows an effectiveness indicator on each move tile against a defender with these types. */
   defenderTypes?: string[];
+  /** When provided, shows a STAB star on each move tile matching one of these types. */
+  attackerTypes?: string[];
   /** Whether a move starts selected. False means none is highlighted until an arrow key is pressed. Defaults to false. */
   startSelected?: boolean;
 }
@@ -18,6 +20,7 @@ export function MoveSelectMenu({
   onSelectMove,
   onClose,
   defenderTypes,
+  attackerTypes,
   startSelected = false,
 }: MoveSelectMenuProps) {
   const { selected, setSelected } = useGridSelection({
@@ -41,6 +44,7 @@ export function MoveSelectMenu({
             onSelectMove?.(move);
           }}
           defenderTypes={defenderTypes}
+          attackerTypes={attackerTypes}
         />
       ))}
     </div>

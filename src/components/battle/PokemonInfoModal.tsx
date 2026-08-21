@@ -103,7 +103,7 @@ export function PokemonInfoModal({
             {displayPokemon.moves.map((move, index) => (
               <div key={index} className="flex items-stretch gap-1">
                 <div className="min-w-0 flex-1">
-                  <MoveTile move={move} />
+                  <MoveTile move={move} attackerTypes={displayPokemon.type} />
                 </div>
                 {allowTeachMove && (
                   <button
