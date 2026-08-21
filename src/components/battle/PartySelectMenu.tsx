@@ -8,13 +8,15 @@ export interface PartySelectMenuProps {
   onSelectPokemon?: (pokemon: TeamPokemon) => void;
   /** Omit to make the menu non-closable, e.g. when a switch is mandatory after a faint. */
   onClose?: () => void;
+  /** Whether a Pokemon starts selected. False means none is highlighted until an arrow key is pressed. Defaults to true. */
+  startSelected?: boolean;
 }
 
 function isSelectable(slot: PartySlot): boolean {
   return slot.status === "available";
 }
 
-export function PartySelectMenu({ party, onSelectPokemon, onClose }: PartySelectMenuProps) {
+export function PartySelectMenu({ party, onSelectPokemon, onClose, startSelected = true }: PartySelectMenuProps) {
   const { selected, setSelected } = useGridSelection({
     itemCount: party.length,
     columns: 2,
@@ -24,6 +26,7 @@ export function PartySelectMenu({ party, onSelectPokemon, onClose }: PartySelect
       if (slot.status === "available") onSelectPokemon?.(slot.pokemon);
     },
     onClose,
+    startSelected,
   });
 
   return (

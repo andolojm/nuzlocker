@@ -9,6 +9,8 @@ export interface UseGridSelectionOptions {
   onClose?: () => void;
   /** Whether this grid currently owns keyboard input. Defaults to true. */
   active?: boolean;
+  /** Whether an item starts selected. False means no item is highlighted until an arrow key is pressed. Defaults to true. */
+  startSelected?: boolean;
 }
 
 function firstEnabledIndex(itemCount: number, isDisabled: (index: number) => boolean): number {
@@ -25,11 +27,14 @@ export function useGridSelection({
   onActivate,
   onClose,
   active = true,
+  startSelected = true,
 }: UseGridSelectionOptions) {
-  const [selected, setSelected] = useState(() => firstEnabledIndex(itemCount, isDisabled));
+  const [selected, setSelected] = useState<number | null>(() =>
+    startSelected ? firstEnabledIndex(itemCount, isDisabled) : null,
+  );
 
   useEffect(() => {
-    if (isDisabled(selected)) {
+    if (selected !== null && isDisabled(selected)) {
       setSelected(firstEnabledIndex(itemCount, isDisabled));
     }
   }, [selected, itemCount, isDisabled]);
@@ -38,6 +43,17 @@ export function useGridSelection({
     if (!active) return;
 
     function handleKeyDown(event: KeyboardEvent) {
+      if (selected === null) {
+        if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) {
+          event.preventDefault();
+          setSelected(firstEnabledIndex(itemCount, isDisabled));
+        } else if ((event.key === "Escape" || event.key === "Backspace") && onClose) {
+          event.preventDefault();
+          onClose();
+        }
+        return;
+      }
+
       const row = Math.floor(selected / columns);
       const col = selected % columns;
       let next = selected;

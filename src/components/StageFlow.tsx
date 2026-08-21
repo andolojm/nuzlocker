@@ -6,6 +6,7 @@ import { gameStateEngine } from "../engine/gameStateEngine";
 import type { AlivePokemon, BattleReplayLog } from "../engine/gameStateEngine";
 import { StageType } from "../engine/stage";
 import type { Stage } from "../engine/stage";
+import { BattleLog } from "./battle/BattleLog";
 import { BattleScreen } from "./battle/BattleScreen";
 import { TeamChanger } from "./battle/TeamChanger";
 import { InitialChoiceScreen } from "./InitialChoiceScreen";
@@ -36,17 +37,29 @@ export function StageFlow({ alivePokemon, stage }: StageFlowProps) {
 
   if (resumeLog) {
     return (
-      <Battle
-        player={{ name: resumeLog.playerName, team: resumeLog.playerTeam }}
-        opponent={{ name: resumeLog.opponentName, team: resumeLog.opponentTeam }}
-        stageType={resumeLog.stageType}
-        ballBonus={resumeLog.ballBonus}
-        resume={resumeLog}
-      />
+      <div>
+        <StageHeader stageType={resumeLog.stageType} />
+        <Battle
+          player={{ name: resumeLog.playerName, team: resumeLog.playerTeam }}
+          opponent={{ name: resumeLog.opponentName, team: resumeLog.opponentTeam }}
+          stageType={resumeLog.stageType}
+          ballBonus={resumeLog.ballBonus}
+          resume={resumeLog}
+        />
+      </div>
     );
   }
 
   return <TeamSelection alivePokemon={alivePokemon} stage={stage} />;
+}
+
+/** "Trainer Battle!" or "Wild Pokemon", shown above team selection and carried through into the battle itself. */
+function StageHeader({ stageType }: { stageType: StageType }) {
+  return (
+    <h1 className="mb-4 text-center text-3xl font-extrabold tracking-tight text-slate-900">
+      {stageType === StageType.Battle ? "Trainer Battle!" : "Wild Pokemon"}
+    </h1>
+  );
 }
 
 interface TeamSelectionProps {
@@ -57,12 +70,10 @@ interface TeamSelectionProps {
 function TeamSelection({ alivePokemon, stage }: TeamSelectionProps) {
   const [confirmedTeam, setConfirmedTeam] = useState<AlivePokemon[] | null>(null);
 
-  if (!confirmedTeam) {
-    return (
-      <div>
-        <h1 className="mb-4 text-center text-3xl font-extrabold tracking-tight text-slate-900">
-          {stage.type === StageType.Battle ? "Trainer Battle!" : "Wild Pokemon"}
-        </h1>
+  return (
+    <div>
+      <StageHeader stageType={stage.type} />
+      {!confirmedTeam ? (
         <TeamChanger
           alivePokemon={alivePokemon}
           levelCap={stage.cap}
@@ -71,11 +82,11 @@ function TeamSelection({ alivePokemon, stage }: TeamSelectionProps) {
             setConfirmedTeam(team);
           }}
         />
-      </div>
-    );
-  }
-
-  return <ResolveOpponent confirmedTeam={confirmedTeam} stage={stage} />;
+      ) : (
+        <ResolveOpponent confirmedTeam={confirmedTeam} stage={stage} />
+      )}
+    </div>
+  );
 }
 
 interface ResolveOpponentProps {
@@ -144,24 +155,27 @@ function Battle({ player, opponent, stageType, ballBonus, resume }: BattleProps)
   const controller = useBattleController(player, opponent, stageType, ballBonus, resume);
 
   return (
-    <BattleScreen
-      playerPokemon={controller.playerPokemon}
-      opponentPokemon={controller.opponentPokemon}
-      playerHp={controller.playerHp}
-      opponentHp={controller.opponentHp}
-      playerStatus={controller.playerStatus}
-      opponentStatus={controller.opponentStatus}
-      playerParty={controller.playerParty}
-      stageType={stageType}
-      phase={controller.phase}
-      turnEvents={controller.turnEvents}
-      onSelectMove={controller.submitMove}
-      onSelectSwitch={controller.submitSwitch}
-      onAdvance={controller.advance}
-      onAction={(action) => {
-        if (action === "CATCH") controller.submitCatch();
-      }}
-      awardedTMs={controller.awardedTMs}
-    />
+    <>
+      <BattleScreen
+        playerPokemon={controller.playerPokemon}
+        opponentPokemon={controller.opponentPokemon}
+        playerHp={controller.playerHp}
+        opponentHp={controller.opponentHp}
+        playerStatus={controller.playerStatus}
+        opponentStatus={controller.opponentStatus}
+        playerParty={controller.playerParty}
+        stageType={stageType}
+        phase={controller.phase}
+        turnEvents={controller.turnEvents}
+        onSelectMove={controller.submitMove}
+        onSelectSwitch={controller.submitSwitch}
+        onAdvance={controller.advance}
+        onAction={(action) => {
+          if (action === "CATCH") controller.submitCatch();
+        }}
+        awardedTMs={controller.awardedTMs}
+      />
+      <BattleLog lines={controller.battleLog} />
+    </>
   );
 }

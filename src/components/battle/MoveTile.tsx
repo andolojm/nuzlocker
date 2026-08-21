@@ -1,6 +1,7 @@
 import type { Move } from "../../api/pikaserve";
 import { getEffectivenessMultiplier } from "../../battle/typeEffectiveness";
 import { bulbapediaMoveUrl, pokemonDbMoveUrl } from "../../util/externalLinks";
+import { TYPE_COLORS, typeTintOnWhite } from "./TypeChip";
 
 export interface MoveTileProps {
   move: Move;
@@ -64,31 +65,34 @@ function EffectivenessIndicator({ moveType, defenderTypes }: { moveType: string;
   return null;
 }
 
-/** A single move's tile, as used in the battle FIGHT menu — name/PWR/ACC on the left, type/PP/category on the right. */
+/** A single move's tile, as used in the battle FIGHT menu — name/PWR/ACC on the left, PP/category/type chip on the right. */
 export function MoveTile({ move, selected = false, onClick, defenderTypes }: MoveTileProps) {
+  const isStatus = move.category === "Status";
+
   return (
     <div
       role="menuitemradio"
       aria-checked={selected}
       tabIndex={-1}
       onClick={onClick}
-      className={`flex cursor-pointer items-center justify-between gap-2 rounded-md px-2 py-1 text-left text-sm font-semibold ${
-        selected ? "bg-white text-slate-900" : "bg-slate-700 text-slate-200"
+      style={isStatus ? undefined : { backgroundColor: typeTintOnWhite(move.type, 0.55) }}
+      className={`flex cursor-pointer items-center justify-between gap-2 rounded-md border-2 border-black bg-white px-2 pt-1 pb-2 text-left text-sm font-semibold text-slate-900 ${
+        selected ? "ring-2 ring-offset-1 ring-blue-500" : ""
       }`}
     >
-      <div className="min-w-0">
-        <div className="truncate">{move.name.english}</div>
+      <div className="min-w-0 leading-tight">
+        <div className="truncate max-[600px]:text-[11px]">{move.name.english}</div>
         <div className="text-[10px] font-normal opacity-75">
           PWR {move.power} · ACC {move.accuracy}
         </div>
-        <div className="flex gap-2 text-[10px] font-normal opacity-75">
+        <div className="mt-0.5 flex items-center gap-1 text-[10px] font-normal">
           <a
             href={pokemonDbMoveUrl(move.name.english)}
             target="_blank"
             rel="noopener noreferrer"
             title="PMDB"
             onClick={(event) => event.stopPropagation()}
-            className="underline"
+            className="rounded px-1 py-0.5 font-bold text-black"
           >
             PMDB
           </a>
@@ -98,19 +102,23 @@ export function MoveTile({ move, selected = false, onClick, defenderTypes }: Mov
             rel="noopener noreferrer"
             title="Bulba"
             onClick={(event) => event.stopPropagation()}
-            className="underline"
+            className="rounded px-1 py-0.5 font-bold text-black"
           >
             Bulba
           </a>
+          {defenderTypes && !isStatus && (
+            <EffectivenessIndicator moveType={move.type} defenderTypes={defenderTypes} />
+          )}
         </div>
       </div>
-      <div className="shrink-0 text-right text-[10px] font-normal opacity-75">
-        <div className="flex items-center justify-end gap-1">
-          {defenderTypes && <EffectivenessIndicator moveType={move.type} defenderTypes={defenderTypes} />}
-          <span>{move.type}</span>
-        </div>
+      <div className="flex shrink-0 flex-col items-end text-[10px] leading-snug font-normal opacity-75">
         <div>{move.pp} PP</div>
         <div>{move.category}</div>
+        <span
+          className={`mt-1 rounded px-1 py-0.5 text-[8px] font-bold text-white ${TYPE_COLORS[move.type] ?? "bg-slate-400"}`}
+        >
+          {move.type.toUpperCase()}
+        </span>
       </div>
     </div>
   );

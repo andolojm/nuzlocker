@@ -8,7 +8,8 @@ export interface BattleMenuProps {
   disabledActions?: BattleAction[];
   /** Whether this menu currently owns keyboard input (false while a submenu, e.g. move select, is open). */
   active?: boolean;
-  onSelect?: (action: BattleAction) => void;
+  /** `openedViaKeyboard` is true when the action was chosen with Space/Enter rather than a click. */
+  onSelect?: (action: BattleAction, openedViaKeyboard: boolean) => void;
 }
 
 export function BattleMenu({ disabledActions = [], active = true, onSelect }: BattleMenuProps) {
@@ -16,7 +17,7 @@ export function BattleMenu({ disabledActions = [], active = true, onSelect }: Ba
     itemCount: ACTIONS.length,
     columns: 2,
     isDisabled: (index) => disabledActions.includes(ACTIONS[index]),
-    onActivate: (index) => onSelect?.(ACTIONS[index]),
+    onActivate: (index) => onSelect?.(ACTIONS[index], true),
     active,
   });
 
@@ -39,7 +40,7 @@ export function BattleMenu({ disabledActions = [], active = true, onSelect }: Ba
             tabIndex={-1}
             onClick={() => {
               setSelected(index);
-              onSelect?.(action);
+              onSelect?.(action, false);
             }}
             className={`flex items-center justify-center rounded-md text-sm font-bold tracking-wide ${
               disabled

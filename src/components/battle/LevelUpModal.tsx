@@ -42,21 +42,22 @@ export function LevelUpModal({ pokemon, fromName, moveChoice, onClose }: LevelUp
           )}
         </div>
 
-        <img
-          src={pokemon.image.hires}
-          alt={pokemon.name.english}
-          className="mx-auto my-3 h-32 w-32 object-contain [image-rendering:pixelated]"
-        />
+        <div className="mt-3 flex items-center gap-3">
+          <img
+            src={pokemon.image.hires}
+            alt={pokemon.name.english}
+            className="h-32 w-32 shrink-0 object-contain [image-rendering:pixelated]"
+          />
+          <div className="flex-1 text-left text-xs min-[600px]:text-sm">
+            <h3 className="font-semibold">Stats / IVs</h3>
+            <PokemonStatsList pokemon={pokemon} />
+          </div>
+        </div>
 
-        <div className="flex justify-center gap-1">
+        <div className="mt-2 flex justify-center gap-1">
           {pokemon.type.map((type) => (
             <TypeChip key={type} type={type} />
           ))}
-        </div>
-
-        <div className="mt-2 text-left text-xs min-[600px]:text-sm">
-          <h3 className="text-center font-semibold">Stats / IVs</h3>
-          <PokemonStatsList pokemon={pokemon} />
         </div>
 
         {moveChoice ? (

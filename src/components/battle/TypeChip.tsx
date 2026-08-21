@@ -23,7 +23,7 @@ export const TYPE_HEX_COLORS: Record<string, string> = {
 const FALLBACK_TYPE_HEX = "#94A3B8";
 
 /** Tailwind needs each of these as a literal string in source to generate the class — don't derive it from TYPE_HEX_COLORS. */
-const TYPE_COLORS: Record<string, string> = {
+export const TYPE_COLORS: Record<string, string> = {
   Normal: "bg-[#A8A878]",
   Fire: "bg-[#F08030]",
   Water: "bg-[#6890F0]",
@@ -58,4 +58,14 @@ export function TypeChip({ type }: { type: string }) {
 /** Hex color for `type`, falling back to a neutral gray for anything unrecognized. */
 export function typeHexColor(type: string): string {
   return TYPE_HEX_COLORS[type] ?? FALLBACK_TYPE_HEX;
+}
+
+/** `type`'s color blended over a white background at `alpha` opacity (0-1), as an rgb() string. */
+export function typeTintOnWhite(type: string, alpha: number): string {
+  const hex = typeHexColor(type);
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const blend = (channel: number) => Math.round(255 * (1 - alpha) + channel * alpha);
+  return `rgb(${blend(r)}, ${blend(g)}, ${blend(b)})`;
 }

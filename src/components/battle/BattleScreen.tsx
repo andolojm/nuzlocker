@@ -55,14 +55,21 @@ export function BattleScreen({
   awardedTMs,
 }: BattleScreenProps) {
   const [openMenu, setOpenMenu] = useState<OpenMenu>("none");
+  const [submenuOpenedViaKeyboard, setSubmenuOpenedViaKeyboard] = useState(false);
   const [showPlayerInfo, setShowPlayerInfo] = useState(false);
   const disabledActions = stageType === StageType.Battle ? BATTLE_DISABLED_ACTIONS : [];
   const isOutcomePhase = phase === "victory" || phase === "defeat" || phase === "caught";
 
-  function handleMainMenuSelect(action: BattleAction) {
-    if (action === "FIGHT") setOpenMenu("fight");
-    else if (action === "POKÉMON") setOpenMenu("pokemon");
-    else onAction?.(action);
+  function handleMainMenuSelect(action: BattleAction, openedViaKeyboard: boolean) {
+    if (action === "FIGHT") {
+      setOpenMenu("fight");
+      setSubmenuOpenedViaKeyboard(openedViaKeyboard);
+    } else if (action === "POKÉMON") {
+      setOpenMenu("pokemon");
+      setSubmenuOpenedViaKeyboard(openedViaKeyboard);
+    } else {
+      onAction?.(action);
+    }
   }
 
   function handleSelectMove(move: Move) {
@@ -89,13 +96,13 @@ export function BattleScreen({
         <img
           src={opponentPokemon.image.hires}
           alt={opponentPokemon.name.english}
-          className="absolute top-6 right-8 h-48 w-48"
+          className="absolute top-6 right-8 h-48 w-48 max-[600px]:right-2 max-[600px]:h-36 max-[600px]:w-36"
         />
 
         <img
           src={playerPokemon.image.hires}
           alt={playerPokemon.name.english}
-          className="absolute bottom-0 left-8 h-64 w-64"
+          className="absolute bottom-0 left-8 h-64 w-64 max-[600px]:left-2 max-[600px]:h-48 max-[600px]:w-48"
         />
         <div className="absolute right-4 bottom-6">
           <PokemonInfoBox
@@ -115,25 +122,29 @@ export function BattleScreen({
           <PartySelectMenu party={playerParty} onSelectPokemon={handleSelectSwitch} />
         ) : isOutcomePhase ? null : (
           <>
-            <div className="flex flex-[2] items-center border-r-2 border-slate-700 px-4 py-2">
+            <div className="flex flex-[2] items-center border-r-2 border-slate-700 px-4 py-2 max-[600px]:px-2">
               {openMenu === "fight" ? (
                 <MoveSelectMenu
                   moves={playerPokemon.moves}
                   onSelectMove={handleSelectMove}
                   onClose={() => setOpenMenu("none")}
                   defenderTypes={opponentPokemon.type}
+                  startSelected={submenuOpenedViaKeyboard}
                 />
               ) : openMenu === "pokemon" ? (
                 <PartySelectMenu
                   party={playerParty}
                   onSelectPokemon={handleSelectSwitch}
                   onClose={() => setOpenMenu("none")}
+                  startSelected={submenuOpenedViaKeyboard}
                 />
               ) : (
                 <p className="text-sm font-medium text-white">What will {playerPokemon.name.english} do?</p>
               )}
             </div>
-            <div className={`flex-1 p-2 ${openMenu !== "none" ? "max-[600px]:hidden" : ""}`}>
+            <div
+              className={`flex-1 p-2 ${openMenu !== "none" ? "max-[600px]:hidden" : "max-[600px]:w-1/2 max-[600px]:flex-none"}`}
+            >
               <BattleMenu
                 disabledActions={disabledActions}
                 active={openMenu === "none"}
@@ -141,14 +152,16 @@ export function BattleScreen({
               />
             </div>
             {openMenu !== "none" && (
-              <button
-                type="button"
-                aria-label="Back"
-                onClick={() => setOpenMenu("none")}
-                className="hidden h-full w-[35px] shrink-0 items-center justify-center rounded-md bg-slate-200 text-slate-800 max-[600px]:flex"
-              >
-                ←
-              </button>
+              <div className="hidden shrink-0 py-2 pr-2 pl-2 max-[600px]:flex">
+                <button
+                  type="button"
+                  aria-label="Back"
+                  onClick={() => setOpenMenu("none")}
+                  className="flex h-full w-[35px] items-center justify-center rounded-md bg-slate-200 text-slate-800"
+                >
+                  ←
+                </button>
+              </div>
             )}
           </>
         )}

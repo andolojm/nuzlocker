@@ -69,6 +69,8 @@ export interface UseBattleControllerResult {
   opponentStatus: StatusCode | null;
   playerParty: PartySlot[];
   turnEvents: string[];
+  /** Every turn's recap so far, each prefixed with a `Turn N: <player> (lvX) \ <opponent> (lvY)` header line. */
+  battleLog: string[];
   submitMove: (move: Move) => void;
   submitSwitch: (pokemon: TeamPokemon) => void;
   /** Attempts to catch the wild Pokemon. No-op unless the pending request allows it. */
@@ -126,6 +128,9 @@ export function useBattleController(
   const opponentStatusRef = useRef<(StatusCode | null)[]>(opponent.team.map(() => null));
   const deadReportedRef = useRef(new Set<number>());
   const logBufferRef = useRef<string[]>([]);
+  const turnNumberRef = useRef(1);
+  /** Which Pokemon were active at the *start* of the turn currently being buffered, for the next battle log header. */
+  const turnHeaderRef = useRef({ playerIndex: 0, opponentIndex: 0 });
   const isFirstDecisionRef = useRef(!resume || resume.choices.length === 0);
   const replayIndexRef = useRef(0);
   const pendingRequestRef = useRef<BattleRequest | null>(null);
@@ -136,6 +141,7 @@ export function useBattleController(
 
   const [phase, setPhase] = useState<BattlePhase>("battle");
   const [turnEvents, setTurnEvents] = useState<string[]>([]);
+  const [battleLog, setBattleLog] = useState<string[]>([]);
   const [awardedTMs, setAwardedTMs] = useState<OwnedTM[]>([]);
   const [snapshot, setSnapshot] = useState<Snapshot>(() => ({
     playerHp: playerHpRef.current,
@@ -263,6 +269,20 @@ export function useBattleController(
       return events;
     }
 
+    /** Appends `events` to the persistent battle log behind a `Turn N: <player> \ <opponent>` header,
+     * then advances the header to reflect whoever's active now, ready for the turn after this one. */
+    function recordTurn(events: string[]) {
+      if (events.length > 0) {
+        const { playerIndex, opponentIndex } = turnHeaderRef.current;
+        const playerMon = player.team[playerIndex];
+        const opponentMon = opponent.team[opponentIndex];
+        const header = `Turn ${turnNumberRef.current}: ${battleNickname(player.team, playerIndex)} (lv${playerMon.level}) \\ ${battleNickname(opponent.team, opponentIndex)} (lv${opponentMon.level})`;
+        turnNumberRef.current += 1;
+        setBattleLog((log) => [...log, header, ...events]);
+      }
+      turnHeaderRef.current = { playerIndex: playerActiveIndexRef.current, opponentIndex: opponentActiveIndexRef.current };
+    }
+
     const chooseP1: ChoiceProvider = (request) => {
       // Silently fast-forward through the recorded prefix on resume: applyLogLine (wired below as
       // onLog) still rebuilds HP/active-index/party state as a side effect of the stream, so no UI
@@ -282,6 +302,7 @@ export function useBattleController(
         resolveChoiceRef.current = resolve;
 
         setSnapshot(takeSnapshot());
+        recordTurn(events);
         if (events.length > 0) {
           setTurnEvents(events);
           setPhase("results");
@@ -336,6 +357,7 @@ export function useBattleController(
 
       const events = flushEvents();
       setSnapshot(takeSnapshot());
+      recordTurn(events);
 
       if (events.length > 0) {
         setTurnEvents(events);
@@ -454,6 +476,7 @@ export function useBattleController(
     opponentStatus: snapshot.opponentStatus[snapshot.opponentActiveIndex] ?? null,
     playerParty: buildPlayerParty(),
     turnEvents,
+    battleLog,
     submitMove,
     submitSwitch,
     submitCatch,

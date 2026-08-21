@@ -91,13 +91,13 @@ export function PokemonInfoBox({
         <HpBar current={hp.current} max={hp.max} />
       </div>
       <div className="mt-1 flex items-center justify-between gap-2">
-        <div className="flex gap-2 text-[10px] text-slate-600 min-[600px]:text-xs">
+        <div className="flex gap-1 text-[10px] min-[600px]:text-xs">
           <a
             href={pokemonDbPokemonUrl(pokemon.name.english)}
             target="_blank"
             rel="noopener noreferrer"
             title="PMDB"
-            className="underline"
+            className="rounded border border-gray-400 px-1 py-0.5 font-bold text-black"
           >
             PMDB
           </a>
@@ -106,12 +106,16 @@ export function PokemonInfoBox({
             target="_blank"
             rel="noopener noreferrer"
             title="Bulba"
-            className="underline"
+            className="rounded border border-gray-400 px-1 py-0.5 font-bold text-black"
           >
             Bulba
           </a>
           {onInfoClick && (
-            <button type="button" onClick={onInfoClick} className="underline">
+            <button
+              type="button"
+              onClick={onInfoClick}
+              className="rounded border border-gray-400 px-1 py-0.5 font-bold text-black"
+            >
               INFO
             </button>
           )}

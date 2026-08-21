@@ -5,6 +5,7 @@ import { useGameState } from "../../engine/useGameState";
 import { MoveTile } from "./MoveTile";
 import { PokemonStatsList } from "./PokemonStatsList";
 import { TMSelectModal } from "./TMSelectModal";
+import { TypeChip } from "./TypeChip";
 
 export interface PokemonInfoModalProps {
   pokemon: TeamPokemon;
@@ -79,14 +80,23 @@ export function PokemonInfoModal({
             </button>
           </div>
 
-          <img
-            src={displayPokemon.image.hires}
-            alt={displayPokemon.name.english}
-            className="mx-auto my-2 h-32 w-32 object-contain [image-rendering:pixelated]"
-          />
+          <div className="mt-2 flex items-center gap-3">
+            <img
+              src={displayPokemon.image.hires}
+              alt={displayPokemon.name.english}
+              className="h-32 w-32 shrink-0 object-contain [image-rendering:pixelated]"
+            />
+            <div className="flex-1 text-left">
+              <h3 className="font-semibold">Stats / IVs</h3>
+              <PokemonStatsList pokemon={displayPokemon} />
+            </div>
+          </div>
 
-          <h3 className="font-semibold">Stats / IVs</h3>
-          <PokemonStatsList pokemon={displayPokemon} />
+          <div className="mt-2 flex justify-center gap-1">
+            {displayPokemon.type.map((type) => (
+              <TypeChip key={type} type={type} />
+            ))}
+          </div>
 
           <h3 className="mt-2 font-semibold">Moves</h3>
           <div className="grid grid-cols-1 gap-1.5 min-[600px]:grid-cols-2">
