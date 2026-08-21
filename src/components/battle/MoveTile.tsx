@@ -75,7 +75,7 @@ export function MoveTile({ move, selected = false, onClick, defenderTypes }: Mov
       aria-checked={selected}
       tabIndex={-1}
       onClick={onClick}
-      style={isStatus ? undefined : { backgroundColor: typeTintOnWhite(move.type, 0.55) }}
+      style={isStatus ? undefined : { backgroundColor: typeTintOnWhite(move.type, 0.25) }}
       className={`flex cursor-pointer items-center justify-between gap-2 rounded-md border-2 border-black bg-white px-2 pt-1 pb-2 text-left text-sm font-semibold text-slate-900 ${
         selected ? "ring-2 ring-offset-1 ring-blue-500" : ""
       }`}
@@ -92,7 +92,7 @@ export function MoveTile({ move, selected = false, onClick, defenderTypes }: Mov
             rel="noopener noreferrer"
             title="PMDB"
             onClick={(event) => event.stopPropagation()}
-            className="rounded px-1 py-0.5 font-bold text-black"
+            className="rounded border border-gray-300 px-1 py-0.5 font-bold text-black"
           >
             PMDB
           </a>
@@ -102,7 +102,7 @@ export function MoveTile({ move, selected = false, onClick, defenderTypes }: Mov
             rel="noopener noreferrer"
             title="Bulba"
             onClick={(event) => event.stopPropagation()}
-            className="rounded px-1 py-0.5 font-bold text-black"
+            className="rounded border border-gray-300 px-1 py-0.5 font-bold text-black"
           >
             Bulba
           </a>

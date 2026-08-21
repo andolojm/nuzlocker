@@ -97,7 +97,7 @@ export function PokemonInfoBox({
             target="_blank"
             rel="noopener noreferrer"
             title="PMDB"
-            className="rounded border border-gray-400 px-1 py-0.5 font-bold text-black"
+            className="rounded border border-gray-300 px-1 py-0.5 font-bold text-black"
           >
             PMDB
           </a>
@@ -106,7 +106,7 @@ export function PokemonInfoBox({
             target="_blank"
             rel="noopener noreferrer"
             title="Bulba"
-            className="rounded border border-gray-400 px-1 py-0.5 font-bold text-black"
+            className="rounded border border-gray-300 px-1 py-0.5 font-bold text-black"
           >
             Bulba
           </a>
@@ -114,7 +114,7 @@ export function PokemonInfoBox({
             <button
               type="button"
               onClick={onInfoClick}
-              className="rounded border border-gray-400 px-1 py-0.5 font-bold text-black"
+              className="rounded border border-gray-300 px-1 py-0.5 font-bold text-black"
             >
               INFO
             </button>
