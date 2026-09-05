@@ -37,6 +37,9 @@ export interface BattleRequest {
 /** Return this sentinel from a ChoiceProvider to attempt a catch, only when request.canAttemptCatch is true. */
 export const ATTEMPT_CATCH = "attempt-catch";
 
+/** Return this sentinel from a ChoiceProvider to flee a Catch stage's wild encounter, ending the battle early. */
+export const ATTEMPT_RUN = "attempt-run";
+
 export type ChoiceProvider = (request: BattleRequest) => string | Promise<string>;
 
 export interface FaintEvent {
@@ -50,6 +53,8 @@ export interface BattleResult {
   fainted: FaintEvent[];
   /** Set when a catch attempt succeeded and the battle was exited early. */
   caught?: TeamPokemon;
+  /** Set when the player fled a Catch stage's wild encounter, ending the battle early. */
+  ranAway?: boolean;
 }
 
 export const DEFAULT_FORMAT_ID = "gen9customgame";
@@ -212,6 +217,8 @@ interface SimulatorPlayerOptions {
   /** The wild Pokemon this player may attempt to catch. Only set for the catching side. */
   catchTarget?: TeamPokemon;
   onCatchAttempt?: (result: CatchAttemptResult) => void;
+  /** Fires when this side chooses to run away; only meaningful for the catching side of a Catch stage. */
+  onRunAway?: () => void;
   /** Injectable RNG for the catch roll itself, distinct from the battle engine's own seed. */
   catchRandom?: () => number;
   /** Catch-rate ball multiplier for this side's catch attempts (Poké Ball = 1). */
@@ -228,18 +235,21 @@ class SimulatorPlayer extends BattleStreams.BattlePlayer {
   private readonly chooseAction: ChoiceProvider;
   private readonly catchTarget?: TeamPokemon;
   private readonly onCatchAttempt?: (result: CatchAttemptResult) => void;
+  private readonly onRunAway?: () => void;
   private readonly catchRandom?: () => number;
   private readonly ballBonus: number;
   private readonly onError: (error: Error) => void;
   private foeHpFraction = 1;
   private foeStatus: StatusCode | null = null;
   private caught = false;
+  private ranAway = false;
 
   constructor(stream: Streams.ObjectReadWriteStream<string>, options: SimulatorPlayerOptions) {
     super(stream);
     this.chooseAction = options.chooseAction;
     this.catchTarget = options.catchTarget;
     this.onCatchAttempt = options.onCatchAttempt;
+    this.onRunAway = options.onRunAway;
     this.catchRandom = options.catchRandom;
     this.ballBonus = options.ballBonus ?? 1;
     this.onError = options.onError;
@@ -258,7 +268,7 @@ class SimulatorPlayer extends BattleStreams.BattlePlayer {
   }
 
   private async handleRequest(request: RawChoiceRequest): Promise<void> {
-    if (this.caught || request.wait) return;
+    if (this.caught || this.ranAway || request.wait) return;
 
     if (request.teamPreview) {
       const order = request.side.pokemon.map((_, index) => index + 1).join("");
@@ -268,6 +278,13 @@ class SimulatorPlayer extends BattleStreams.BattlePlayer {
 
     const battleRequest = toBattleRequest(request, Boolean(this.catchTarget));
     const chosen = await this.chooseAction(battleRequest);
+
+    if (chosen === ATTEMPT_RUN) {
+      if (!this.onRunAway) throw new Error("This battle doesn't support running");
+      this.ranAway = true;
+      this.onRunAway();
+      return;
+    }
 
     if (chosen !== ATTEMPT_CATCH) {
       this.choose(chosen);
@@ -348,10 +365,16 @@ export class BattleSimulator {
         void Promise.resolve(streams.omniscient.destroy()).catch(() => {});
       };
 
+      const handleRunAway = () => {
+        resolve({ winner: null, log, fainted, ranAway: true });
+        void Promise.resolve(streams.omniscient.destroy()).catch(() => {});
+      };
+
       const player1 = new SimulatorPlayer(streams.p1, {
         chooseAction: chooseP1,
         catchTarget,
         onCatchAttempt: catchTarget ? handleCatchAttempt : undefined,
+        onRunAway: catchTarget ? handleRunAway : undefined,
         catchRandom: this.catchRandom,
         ballBonus: this.ballBonus,
         onError: reject,

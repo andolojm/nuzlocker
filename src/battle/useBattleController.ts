@@ -9,7 +9,7 @@ import type { StageType } from "../engine/stage";
 import { awardCatchTM, awardVictoryTMs } from "../engine/tmRewards";
 import { battleNickname } from "./battleNickname";
 import type { BattleParticipant, BattleRequest, ChoiceProvider } from "./battleSimulator";
-import { ATTEMPT_CATCH, BattleSimulator } from "./battleSimulator";
+import { ATTEMPT_CATCH, ATTEMPT_RUN, BattleSimulator } from "./battleSimulator";
 import { formatBattleLine, parseStatusField, rawIdentName } from "./formatBattleLine";
 import type { StatusCode } from "./formatBattleLine";
 import { chooseTrainerMove } from "./trainerAi";
@@ -30,7 +30,7 @@ function resolveAndRecord(resolve: (choice: string) => void, choice: string): vo
   resolve(choice);
 }
 
-export type BattlePhase = "battle" | "results" | "forced-switch" | "victory" | "defeat" | "caught";
+export type BattlePhase = "battle" | "results" | "forced-switch" | "victory" | "defeat" | "caught" | "ran";
 
 /** Flavor text for a failed catch attempt, indexed by CatchAttemptResult.shakes (0-3). */
 const CATCH_FAIL_MESSAGES = [
@@ -75,7 +75,9 @@ export interface UseBattleControllerResult {
   submitSwitch: (pokemon: TeamPokemon) => void;
   /** Attempts to catch the wild Pokemon. No-op unless the pending request allows it. */
   submitCatch: () => void;
-  /** Dismisses the results/victory/defeat/caught screen and moves on to whatever's next. */
+  /** Flees the wild encounter, ending the battle with no reward. No-op unless the pending request allows it. */
+  submitRun: () => void;
+  /** Dismisses the results/victory/defeat/caught/ran screen and moves on to whatever's next. */
   advance: () => void;
   /** TM(s) awarded for the current victory/catch, if any. Empty outside those phases. */
   awardedTMs: OwnedTM[];
@@ -351,6 +353,11 @@ export function useBattleController(
       pendingRequestRef.current = null;
       resolveChoiceRef.current = null;
 
+      if (result.ranAway) {
+        setPhase("ran");
+        return;
+      }
+
       if (result.winner === "p1") {
         setAwardedTMs(await awardVictoryTMs());
       }
@@ -422,6 +429,16 @@ export function useBattleController(
     resolveAndRecord(resolve, ATTEMPT_CATCH);
   }, []);
 
+  const submitRun = useCallback(() => {
+    const request = pendingRequestRef.current;
+    const resolve = resolveChoiceRef.current;
+    if (!request?.canAttemptCatch || !resolve) return;
+
+    pendingRequestRef.current = null;
+    resolveChoiceRef.current = null;
+    resolveAndRecord(resolve, ATTEMPT_RUN);
+  }, []);
+
   const advance = useCallback(() => {
     if (phase === "results") {
       const request = pendingRequestRef.current;
@@ -446,7 +463,7 @@ export function useBattleController(
       return;
     }
 
-    if (phase === "victory" || phase === "caught") {
+    if (phase === "victory" || phase === "caught" || phase === "ran") {
       gameStateEngine.progressState();
       return;
     }
@@ -480,6 +497,7 @@ export function useBattleController(
     submitMove,
     submitSwitch,
     submitCatch,
+    submitRun,
     advance,
     awardedTMs,
   };

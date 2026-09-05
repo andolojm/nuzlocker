@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import type { OwnedTM } from "../../engine/gameStateEngine";
 
 export interface OutcomeModalProps {
-  variant: "victory" | "defeat" | "caught";
+  variant: "victory" | "defeat" | "caught" | "ran";
   onAdvance: () => void;
   /** TM(s) awarded for this outcome, if any. Only ever set for "victory"/"caught". */
   awardedTMs?: OwnedTM[];
@@ -12,6 +12,7 @@ const TEXT: Record<OutcomeModalProps["variant"], string> = {
   victory: "Victory!",
   defeat: "Defeat...",
   caught: "Gotcha!",
+  ran: "Disappointing.",
 };
 
 export function OutcomeModal({ variant, onAdvance, awardedTMs = [] }: OutcomeModalProps) {

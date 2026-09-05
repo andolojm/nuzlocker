@@ -173,6 +173,7 @@ function Battle({ player, opponent, stageType, ballBonus, resume }: BattleProps)
         onAdvance={controller.advance}
         onAction={(action) => {
           if (action === "CATCH") controller.submitCatch();
+          if (action === "RUN") controller.submitRun();
         }}
         awardedTMs={controller.awardedTMs}
       />

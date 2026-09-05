@@ -61,7 +61,7 @@ export function BattleScreen({
   const [submenuOpenedViaKeyboard, setSubmenuOpenedViaKeyboard] = useState(false);
   const [showPlayerInfo, setShowPlayerInfo] = useState(false);
   const disabledActions = stageType === StageType.Battle ? BATTLE_DISABLED_ACTIONS : [];
-  const isOutcomePhase = phase === "victory" || phase === "defeat" || phase === "caught";
+  const isOutcomePhase = phase === "victory" || phase === "defeat" || phase === "caught" || phase === "ran";
 
   function handleMainMenuSelect(action: BattleAction, openedViaKeyboard: boolean) {
     if (action === "FIGHT") {
@@ -175,9 +175,7 @@ export function BattleScreen({
         )}
       </div>
 
-      {(phase === "victory" || phase === "defeat" || phase === "caught") && (
-        <OutcomeModal variant={phase} onAdvance={onAdvance} awardedTMs={awardedTMs} />
-      )}
+      {isOutcomePhase && <OutcomeModal variant={phase} onAdvance={onAdvance} awardedTMs={awardedTMs} />}
       {showPlayerInfo && <PokemonInfoModal pokemon={playerPokemon} onClose={() => setShowPlayerInfo(false)} />}
     </div>
   );
