@@ -46,7 +46,7 @@ export function BattleMenu({ disabledActions = [], active = true, ballBonus, onS
               onSelect?.(action, false);
             }}
             aria-label={action === "CATCH" && ballBonus !== undefined ? "CATCH" : undefined}
-            className={`flex items-center justify-center rounded-md text-sm font-bold tracking-wide ${
+            className={`flex items-center justify-center rounded-md text-sm font-bold ${
               disabled
                 ? "cursor-not-allowed bg-slate-100 text-slate-400"
                 : index === selected

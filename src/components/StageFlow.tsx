@@ -56,7 +56,7 @@ export function StageFlow({ alivePokemon, stage }: StageFlowProps) {
 /** "Trainer Battle!" or "Wild Pokemon", shown above team selection and carried through into the battle itself. */
 function StageHeader({ stageType }: { stageType: StageType }) {
   return (
-    <h1 className="mb-4 text-center text-3xl font-extrabold tracking-tight text-slate-900">
+    <h1 className="mb-4 text-center text-3xl font-extrabold text-slate-900">
       {stageType === StageType.Battle ? "Trainer Battle!" : "Wild Pokemon"}
     </h1>
   );

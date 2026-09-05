@@ -33,7 +33,7 @@ export function MoveSelectMenu({
   });
 
   return (
-    <div role="menu" aria-label="Moves" className="grid h-full w-full grid-cols-2 grid-rows-2 gap-1.5">
+    <div role="menu" aria-label="Moves" className="grid h-full w-full grid-cols-2 grid-rows-2 gap-1">
       {moves.map((move, index) => (
         <MoveTile
           key={`${move.id}-${index}`}

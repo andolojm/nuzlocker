@@ -1,1 +1,26 @@
 @import "tailwindcss";
+
+@theme {
+  --font-sans: "Jersey 10", ui-sans-serif, system-ui, sans-serif;
+
+  /*
+   * Jersey 10's cap-height runs ~25% short of the previous system-sans stack at the same
+   * font-size (measured via canvas text metrics), so every named text-size step is scaled up
+   * here to keep the same visual size. The two smallest steps get an extra bump on top of the
+   * 1.25x baseline since they read especially small at this font's natural size. Line-heights
+   * are left alone: theme.css expresses them as unitless font-size multiples, so they scale
+   * automatically with these.
+   */
+  --text-xs: 1.05rem;
+  --text-sm: 1.225rem;
+  --text-base: 1.25rem;
+  --text-lg: 1.40625rem;
+  --text-xl: 1.5625rem;
+  --text-2xl: 1.875rem;
+  --text-3xl: 2.34375rem;
+  --text-4xl: 2.8125rem;
+}
+
+body {
+  letter-spacing: 1.5px;
+}

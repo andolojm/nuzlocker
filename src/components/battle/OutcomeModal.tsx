@@ -35,7 +35,7 @@ export function OutcomeModal({ variant, onAdvance, awardedTMs = [] }: OutcomeMod
       className="absolute inset-0 z-10 flex cursor-pointer items-center justify-center bg-black/60"
     >
       <div className="text-center">
-        <p className="text-4xl font-extrabold tracking-wide text-white drop-shadow-lg">{TEXT[variant]}</p>
+        <p className="text-4xl font-extrabold text-white drop-shadow-lg">{TEXT[variant]}</p>
 
         {awardedTMs.length > 0 && (
           <div className="mt-3">

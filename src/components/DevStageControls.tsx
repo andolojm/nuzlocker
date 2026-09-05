@@ -67,7 +67,7 @@ export function DevStageControls({ onReset }: DevStageControlsProps) {
 
   return (
     <div className="mt-4 flex flex-col items-center gap-3">
-      <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <h2 className="text-xs font-semibold uppercase text-slate-500">
         Dev tools
       </h2>
       <div className="flex gap-3">

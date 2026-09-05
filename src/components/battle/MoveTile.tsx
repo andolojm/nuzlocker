@@ -1,6 +1,6 @@
 import type { Move } from "../../api/pikaserve";
 import { getEffectivenessMultiplier } from "../../battle/typeEffectiveness";
-import { bulbapediaMoveUrl, pokemonDbMoveUrl } from "../../util/externalLinks";
+import { bulbapediaMoveUrl } from "../../util/externalLinks";
 import { TYPE_COLORS, typeTintOnWhite } from "./TypeChip";
 
 export interface MoveTileProps {
@@ -86,19 +86,9 @@ export function MoveTile({ move, selected = false, onClick, defenderTypes, attac
       <div className="min-w-0 leading-tight">
         <div className="truncate max-[600px]:text-[11px]">{move.name.english}</div>
         <div className="text-[10px] font-normal opacity-75">
-          PWR {move.power} · {move.accuracy}
+          {move.power === "—" ? "" : `${move.power}p,`} {move.accuracy}
         </div>
         <div className="mt-0.5 flex items-center gap-1 text-[10px] font-normal">
-          <a
-            href={pokemonDbMoveUrl(move.name.english)}
-            target="_blank"
-            rel="noopener noreferrer"
-            title="PMDB"
-            onClick={(event) => event.stopPropagation()}
-            className="rounded border border-gray-300 px-1 py-0.5 font-bold text-black"
-          >
-            PMDB
-          </a>
           <a
             href={bulbapediaMoveUrl(move.name.english)}
             target="_blank"

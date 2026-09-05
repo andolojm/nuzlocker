@@ -46,7 +46,7 @@ export function EndOfGameScreen({ alivePokemon, deadPokemon }: EndOfGameScreenPr
       <PokemonBox title="Party" pokemon={activeParty} emptyText="No Pokémon in the active party." />
 
       <div className="flex items-center justify-center rounded-xl border-4 border-slate-800 bg-slate-100 p-4 shadow-xl">
-        <p className="text-3xl font-extrabold tracking-wide text-slate-900">Win!</p>
+        <p className="text-3xl font-extrabold text-slate-900">Win!</p>
       </div>
 
       <PokemonBox title="Inactive" pokemon={inactiveParty} emptyText="No inactive Pokémon." />

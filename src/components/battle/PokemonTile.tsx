@@ -17,11 +17,11 @@ export function PokemonTile({ pokemon, hp, emphasized = false, showHp = true }: 
       <img
         src={pokemon.image.sprite}
         alt=""
-        className="h-8 w-8 shrink-0 object-contain [image-rendering:pixelated]"
+        className="h-11 w-11 shrink-0 object-contain [image-rendering:pixelated]"
       />
       <div className="min-w-0 flex-1">
-        <div className="flex items-center justify-between gap-1">
-          <span className="truncate text-xs font-semibold">{pokemon.name.english}</span>
+        <div className="flex items-center justify-between">
+          <span className="truncate text-sm font-semibold">{pokemon.name.english}</span>
           <span className="shrink-0 text-[10px]">Lv{pokemon.level}</span>
         </div>
         {showHp && hp && <HpBar current={hp.current} max={hp.max} dark={!emphasized} />}

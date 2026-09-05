@@ -47,7 +47,7 @@ export function PartySelectMenu({ party, onSelectPokemon, onClose, startSelected
               setSelected(index);
               if (slot.status === "available") onSelectPokemon?.(slot.pokemon);
             }}
-            className={`flex items-center gap-2 rounded-md px-2 py-1 text-left ${
+            className={`flex items-center rounded-md text-left ${
               disabled
                 ? "cursor-not-allowed bg-slate-800 text-slate-400"
                 : isChosen

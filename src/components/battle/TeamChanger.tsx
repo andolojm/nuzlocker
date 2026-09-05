@@ -129,18 +129,18 @@ export function TeamChanger({ alivePokemon, levelCap, onSubmit }: TeamChangerPro
   return (
     <div className="rounded-xl border-4 border-slate-800 bg-slate-100 p-4 shadow-xl">
       <h2 className="mb-3 text-center text-lg font-bold text-slate-900">Choose Your Team</h2>
-      <div className="grid grid-cols-1 gap-4 min-[600px]:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 min-[600px]:grid-cols-[3fr_2fr]">
         <div>
           <h3 className="mb-2 text-sm font-semibold text-slate-700">
             Active ({active.length}/{MAX_ACTIVE_TEAM_SIZE})
           </h3>
           <ul className="space-y-1.5">
             {active.map((pokemon, index) => (
-              <li key={index} className="flex items-stretch justify-center gap-1">
+              <li key={index} className="flex items-stretch gap-1">
                 <button
                   type="button"
                   onClick={() => moveToInactive(pokemon)}
-                  className="flex w-48 items-center gap-2 rounded-md bg-slate-700 px-2 py-1 text-left text-slate-200"
+                  className="flex min-w-0 flex-1 items-center gap-2 rounded-md bg-slate-700 px-2 py-1 text-left text-slate-200"
                 >
                   <PokemonTile pokemon={pokemon} showHp={false} />
                 </button>
@@ -187,12 +187,12 @@ export function TeamChanger({ alivePokemon, levelCap, onSubmit }: TeamChangerPro
           <h3 className="mb-2 text-sm font-semibold text-slate-700">Inactive</h3>
           <ul className="space-y-1.5">
             {inactive.map((pokemon, index) => (
-              <li key={index} className="flex items-center justify-center gap-1">
+              <li key={index} className="flex items-center gap-1">
                 <button
                   type="button"
                   disabled={atCapacity}
                   onClick={() => moveToActive(pokemon)}
-                  className={`flex w-48 items-center gap-2 rounded-md px-2 py-1 text-left ${
+                  className={`flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1 text-left ${
                     atCapacity ? "cursor-not-allowed bg-slate-300 text-slate-400" : "bg-slate-700 text-slate-200"
                   }`}
                 >
