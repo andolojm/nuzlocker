@@ -23,6 +23,8 @@ export interface BattleScreenProps {
   opponentStatus: StatusCode | null;
   playerParty: PartySlot[];
   stageType: StageType;
+  /** Ball multiplier for the active Catch stage; ignored for Battle stages. */
+  ballBonus: number;
   phase: BattlePhase;
   turnEvents: string[];
   onSelectMove: (move: Move) => void;
@@ -46,6 +48,7 @@ export function BattleScreen({
   opponentStatus,
   playerParty,
   stageType,
+  ballBonus,
   phase,
   turnEvents,
   onSelectMove,
@@ -149,6 +152,7 @@ export function BattleScreen({
               <BattleMenu
                 disabledActions={disabledActions}
                 active={openMenu === "none"}
+                ballBonus={stageType === StageType.Catch ? ballBonus : undefined}
                 onSelect={handleMainMenuSelect}
               />
             </div>

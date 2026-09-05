@@ -1,3 +1,4 @@
+import { BallIcon } from "./BallIcon";
 import { useGridSelection } from "./useGridSelection";
 
 const ACTIONS = ["FIGHT", "CATCH", "POKÉMON", "RUN"] as const;
@@ -8,11 +9,13 @@ export interface BattleMenuProps {
   disabledActions?: BattleAction[];
   /** Whether this menu currently owns keyboard input (false while a submenu, e.g. move select, is open). */
   active?: boolean;
+  /** Ball multiplier for the active Catch stage; shown as an icon on the CATCH button when set. */
+  ballBonus?: number;
   /** `openedViaKeyboard` is true when the action was chosen with Space/Enter rather than a click. */
   onSelect?: (action: BattleAction, openedViaKeyboard: boolean) => void;
 }
 
-export function BattleMenu({ disabledActions = [], active = true, onSelect }: BattleMenuProps) {
+export function BattleMenu({ disabledActions = [], active = true, ballBonus, onSelect }: BattleMenuProps) {
   const { selected, setSelected } = useGridSelection({
     itemCount: ACTIONS.length,
     columns: 2,
@@ -42,6 +45,7 @@ export function BattleMenu({ disabledActions = [], active = true, onSelect }: Ba
               setSelected(index);
               onSelect?.(action, false);
             }}
+            aria-label={action === "CATCH" && ballBonus !== undefined ? "CATCH" : undefined}
             className={`flex items-center justify-center rounded-md text-sm font-bold tracking-wide ${
               disabled
                 ? "cursor-not-allowed bg-slate-100 text-slate-400"
@@ -50,7 +54,11 @@ export function BattleMenu({ disabledActions = [], active = true, onSelect }: Ba
                   : "bg-slate-200 text-slate-800"
             }`}
           >
-            {action}
+            {action === "CATCH" && ballBonus !== undefined ? (
+              <BallIcon ballBonus={ballBonus} className="h-8 w-8" />
+            ) : (
+              action
+            )}
           </button>
         );
       })}

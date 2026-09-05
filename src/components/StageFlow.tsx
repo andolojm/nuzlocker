@@ -165,6 +165,7 @@ function Battle({ player, opponent, stageType, ballBonus, resume }: BattleProps)
         opponentStatus={controller.opponentStatus}
         playerParty={controller.playerParty}
         stageType={stageType}
+        ballBonus={ballBonus}
         phase={controller.phase}
         turnEvents={controller.turnEvents}
         onSelectMove={controller.submitMove}
