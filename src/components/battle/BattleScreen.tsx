@@ -118,12 +118,21 @@ export function BattleScreen({
         </div>
       </div>
 
-      <div className="flex h-32 bg-slate-900">
+      <div className="flex h-38 bg-slate-900">
         {phase === "results" ? (
           <ResultsPanel events={turnEvents} onAdvance={onAdvance} />
         ) : phase === "forced-switch" ? (
           <PartySelectMenu party={playerParty} onSelectPokemon={handleSelectSwitch} />
-        ) : isOutcomePhase ? null : (
+        ) : isOutcomePhase ? null : openMenu === "none" ? (
+          <div className="flex-1 p-2">
+            <BattleMenu
+              disabledActions={disabledActions}
+              active
+              ballBonus={stageType === StageType.Catch ? ballBonus : undefined}
+              onSelect={handleMainMenuSelect}
+            />
+          </div>
+        ) : (
           <>
             <div className="flex flex-[2] items-center border-r-2 border-slate-700 px-4 py-2 max-[600px]:px-2">
               {openMenu === "fight" ? (
@@ -135,39 +144,33 @@ export function BattleScreen({
                   attackerTypes={playerPokemon.type}
                   startSelected={submenuOpenedViaKeyboard}
                 />
-              ) : openMenu === "pokemon" ? (
+              ) : (
                 <PartySelectMenu
                   party={playerParty}
                   onSelectPokemon={handleSelectSwitch}
                   onClose={() => setOpenMenu("none")}
                   startSelected={submenuOpenedViaKeyboard}
                 />
-              ) : (
-                <p className="text-sm font-medium text-white">What will {playerPokemon.name.english} do?</p>
               )}
             </div>
-            <div
-              className={`flex-1 p-2 ${openMenu !== "none" ? "max-[600px]:hidden" : "max-[600px]:w-1/2 max-[600px]:flex-none"}`}
-            >
+            <div className="flex-1 p-2 max-[600px]:hidden">
               <BattleMenu
                 disabledActions={disabledActions}
-                active={openMenu === "none"}
+                active={false}
                 ballBonus={stageType === StageType.Catch ? ballBonus : undefined}
                 onSelect={handleMainMenuSelect}
               />
             </div>
-            {openMenu !== "none" && (
-              <div className="hidden shrink-0 py-2 pr-2 pl-2 max-[600px]:flex">
-                <button
-                  type="button"
-                  aria-label="Back"
-                  onClick={() => setOpenMenu("none")}
-                  className="flex h-full w-[35px] items-center justify-center rounded-md bg-slate-200 text-slate-800"
-                >
-                  ←
-                </button>
-              </div>
-            )}
+            <div className="hidden shrink-0 py-2 pr-2 pl-2 max-[600px]:flex">
+              <button
+                type="button"
+                aria-label="Back"
+                onClick={() => setOpenMenu("none")}
+                className="flex h-full w-[35px] items-center justify-center rounded-md bg-slate-200 text-slate-800"
+              >
+                ←
+              </button>
+            </div>
           </>
         )}
       </div>

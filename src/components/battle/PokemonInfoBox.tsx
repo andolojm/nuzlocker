@@ -90,41 +90,39 @@ export function PokemonInfoBox({
       <div className="mt-1.5">
         <HpBar current={hp.current} max={hp.max} />
       </div>
-      <div className="mt-1 flex items-center justify-between gap-2">
-        <div className="flex gap-1 text-[10px] min-[600px]:text-xs">
-          <a
-            href={pokemonDbPokemonUrl(pokemon.name.english)}
-            target="_blank"
-            rel="noopener noreferrer"
-            title="PMDB"
+      <div className="mt-1 flex gap-1">
+        {pokemon.type.map((type) => (
+          <TypeChip key={type} type={type} />
+        ))}
+      </div>
+      <div className="mt-1 flex gap-1 text-[10px] min-[600px]:text-xs">
+        <a
+          href={pokemonDbPokemonUrl(pokemon.name.english)}
+          target="_blank"
+          rel="noopener noreferrer"
+          title="PMDB"
+          className="rounded border border-gray-300 px-1 py-0.5 font-bold text-black"
+        >
+          PMDB
+        </a>
+        <a
+          href={bulbapediaPokemonUrl(pokemon.name.english)}
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Bulba"
+          className="rounded border border-gray-300 px-1 py-0.5 font-bold text-black"
+        >
+          Bulba
+        </a>
+        {onInfoClick && (
+          <button
+            type="button"
+            onClick={onInfoClick}
             className="rounded border border-gray-300 px-1 py-0.5 font-bold text-black"
           >
-            PMDB
-          </a>
-          <a
-            href={bulbapediaPokemonUrl(pokemon.name.english)}
-            target="_blank"
-            rel="noopener noreferrer"
-            title="Bulba"
-            className="rounded border border-gray-300 px-1 py-0.5 font-bold text-black"
-          >
-            Bulba
-          </a>
-          {onInfoClick && (
-            <button
-              type="button"
-              onClick={onInfoClick}
-              className="rounded border border-gray-300 px-1 py-0.5 font-bold text-black"
-            >
-              INFO
-            </button>
-          )}
-        </div>
-        <div className="flex shrink-0 gap-1">
-          {pokemon.type.map((type) => (
-            <TypeChip key={type} type={type} />
-          ))}
-        </div>
+            INFO
+          </button>
+        )}
       </div>
     </div>
   );

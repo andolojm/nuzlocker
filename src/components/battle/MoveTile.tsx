@@ -86,7 +86,7 @@ export function MoveTile({ move, selected = false, onClick, defenderTypes, attac
       <div className="min-w-0 leading-tight">
         <div className="truncate max-[600px]:text-[11px]">{move.name.english}</div>
         <div className="text-[10px] font-normal opacity-75">
-          PWR {move.power} · ACC {move.accuracy}
+          PWR {move.power} · {move.accuracy}
         </div>
         <div className="mt-0.5 flex items-center gap-1 text-[10px] font-normal">
           <a
