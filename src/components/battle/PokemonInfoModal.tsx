@@ -87,7 +87,9 @@ export function PokemonInfoModal({
               className="h-32 w-32 shrink-0 object-contain [image-rendering:pixelated]"
             />
             <div className="flex-1 text-left">
-              <h3 className="font-semibold">Stats / IVs</h3>
+              <h3 className="font-semibold">
+                Stats / IVs <span className="text-xs font-normal italic">(BST {displayPokemon.bst})</span>
+              </h3>
               <PokemonStatsList pokemon={displayPokemon} />
             </div>
           </div>

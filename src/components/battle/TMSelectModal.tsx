@@ -36,7 +36,9 @@ export function TMSelectModal({ pokemon, tms, onSelect, onClose }: TMSelectModal
           </button>
         </div>
 
-        <h3 className="mt-2 font-semibold">Stats / IVs</h3>
+        <h3 className="mt-2 font-semibold">
+          Stats / IVs <span className="text-xs font-normal italic">(BST {pokemon.bst})</span>
+        </h3>
         <PokemonStatsList pokemon={pokemon} />
 
         {tms.length === 0 ? (

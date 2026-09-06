@@ -49,7 +49,9 @@ export function LevelUpModal({ pokemon, fromName, moveChoice, onClose }: LevelUp
             className="h-32 w-32 shrink-0 object-contain [image-rendering:pixelated]"
           />
           <div className="flex-1 text-left text-xs min-[600px]:text-sm">
-            <h3 className="font-semibold">Stats / IVs</h3>
+            <h3 className="font-semibold">
+              Stats / IVs <span className="text-xs font-normal italic">(BST {pokemon.bst})</span>
+            </h3>
             <PokemonStatsList pokemon={pokemon} />
           </div>
         </div>
