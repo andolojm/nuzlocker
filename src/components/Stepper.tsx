@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { StageType } from "../engine/stage";
 import type { Stage } from "../engine/stage";
 
@@ -62,8 +63,23 @@ function StepNode({ stage, status }: { stage: Stage; status: StepStatus }) {
 }
 
 export function Stepper({ stages, progress }: StepperProps) {
+  const currentRef = useRef<HTMLLIElement>(null);
+
+  useEffect(() => {
+    // Center the current stage in the horizontally-scrolling stepper whenever the stage advances.
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    currentRef.current?.scrollIntoView({
+      inline: "center",
+      block: "nearest",
+      behavior: reduceMotion ? "auto" : "smooth",
+    });
+  }, [progress]);
+
   return (
-    <nav aria-label="Progress" className="w-full overflow-x-auto border-b border-slate-200 bg-white py-4">
+    <nav
+      aria-label="Progress"
+      className="w-full overflow-x-auto border-b border-slate-200 bg-white py-4"
+    >
       <ol role="list" className="flex w-max min-w-full items-center gap-6 px-6">
         {stages.map((stage, index) => {
           const status = stepStatus(index, progress);
@@ -74,6 +90,7 @@ export function Stepper({ stages, progress }: StepperProps) {
           return (
             <li
               key={index}
+              ref={status === "current" ? currentRef : undefined}
               className={`flex shrink-0 items-center gap-1.5 ${isLast ? "" : "flex-1 min-w-[4rem]"}`}
               title={stage.description}
             >
