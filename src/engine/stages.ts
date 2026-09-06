@@ -17,7 +17,7 @@ export function buildOpponentTeam(size: number, baseStrength: number, random: ()
 
 /** Range the strength (bst constraint) passed to Catch stages' encounterPokemon call scales across. */
 const CATCH_STRENGTH_MIN = 300;
-const CATCH_STRENGTH_MAX = 550;
+const CATCH_STRENGTH_MAX = 575;
 
 /** Linearly scales `index` (0-based, out of `count` total) between CATCH_STRENGTH_MIN and _MAX. */
 function catchStrength(index: number, count: number): number {
@@ -58,8 +58,8 @@ export const STAGES: Stage[] = withCatchStrengths([
   {
     type: StageType.Catch,
     description: "One more wild Pokémon crosses your path.",
-    level: 5,
-    cap: 14,
+    level: 2,
+    cap: 6,
     ballBonus: 1,
   },
   {
@@ -73,6 +73,13 @@ export const STAGES: Stage[] = withCatchStrengths([
     type: StageType.Battle,
     description: "Another trainer steps forward, ready to fight.",
     opponentTeam: buildOpponentTeam(2, 328),
+    level: 10,
+    cap: 14,
+  },
+    {
+    type: StageType.Battle,
+    description: "More dudes step forward, ready to wrestle.",
+    opponentTeam: buildOpponentTeam(2, 348),
     level: 12,
     cap: 14,
   },
@@ -86,6 +93,13 @@ export const STAGES: Stage[] = withCatchStrengths([
   {
     type: StageType.Catch,
     description: "Another wild Pokémon catches your eye.",
+    level: 13,
+    cap: 20,
+    ballBonus: 1.5,
+  },
+  {
+    type: StageType.Catch,
+    description: "A third wild Pokémon appears before the next trainer battle.",
     level: 13,
     cap: 20,
     ballBonus: 1.5,
@@ -118,32 +132,39 @@ export const STAGES: Stage[] = withCatchStrengths([
     cap: 26,
     ballBonus: 1.5,
   },
-    {
+  {
     type: StageType.Battle,
     description: "A trainer blocks the path ahead.",
     opponentTeam: buildOpponentTeam(3, 311),
-    level: 22,
+    level: 21,
     cap: 26,
   },
   {
     type: StageType.Battle,
     description: "Yet another trainer wants to test their team.",
     opponentTeam: buildOpponentTeam(3, 383),
-    level: 24,
+    level: 23,
+    cap: 26,
+  },
+  {
+    type: StageType.Battle,
+    description: "More dudes.",
+    opponentTeam: buildOpponentTeam(1, 500),
+    level: 23,
     cap: 26,
   },
   {
     type: StageType.Catch,
     description: "A wild Pokémon rustles through the underbrush.",
     level: 25,
-    cap: 34,
+    cap: 35,
     ballBonus: 1.5,
   },
   {
     type: StageType.Catch,
     description: "Another wild Pokémon catches your eye.",
     level: 26,
-    cap: 34,
+    cap: 35,
     ballBonus: 2,
   },
   {
@@ -151,34 +172,55 @@ export const STAGES: Stage[] = withCatchStrengths([
     description: "A baby trainer squares up for a fight.",
     opponentTeam: buildOpponentTeam(2, 470),
     level: 31,
-    cap: 34,
+    cap: 35,
   },
   {
     type: StageType.Battle,
     description: "A trainer squares up for a fight.",
     opponentTeam: buildOpponentTeam(4, 410),
     level: 33,
-    cap: 34,
+    cap: 35,
   },
   {
     type: StageType.Battle,
     description: "Another battle looms ahead.",
     opponentTeam: buildOpponentTeam(3, 460),
     level: 34,
-    cap: 34,
+    cap: 35,
+  },
+  {
+    type: StageType.Battle,
+    description: "A confident trainer challenges you before the road gets tougher.",
+    opponentTeam: buildOpponentTeam(3, 450),
+    level: 35,
+    cap: 44,
+  },
+  {
+    type: StageType.Battle,
+    description: "Another trainer wants a piece of the action.",
+    opponentTeam: buildOpponentTeam(3, 470),
+    level: 36,
+    cap: 44,
+  },
+  {
+    type: StageType.Catch,
+    description: "A wild Pokémon appears at the edge of the path.",
+    level: 28,
+    cap: 44,
+    ballBonus: 2,
   },
   {
     type: StageType.Catch,
     description: "Another wild Pokémon appears nearby.",
-    level: 32,
-    cap: 41,
+    level: 29,
+    cap: 44,
     ballBonus: 2,
   },
   {
     type: StageType.Catch,
     description: "A final wild Pokémon appears before the road gets tougher.",
-    level: 33,
-    cap: 41,
+    level: 40,
+    cap: 44,
     ballBonus: 2,
   },
   {
@@ -186,27 +228,27 @@ export const STAGES: Stage[] = withCatchStrengths([
     description: "A tough trainer stands in your way.",
     opponentTeam: buildOpponentTeam(2, 600),
     level: 41,
-    cap: 41,
+    cap: 44,
   },
   {
     type: StageType.Battle,
     description: "A tough trainer stands in your way.",
     opponentTeam: buildOpponentTeam(5, 465),
-    level: 46,
-    cap: 46,
+    level: 51,
+    cap: 55,
   },
   {
     type: StageType.Battle,
     description: "The battles keep coming.",
     opponentTeam: buildOpponentTeam(3, 520),
-    level: 50,
-    cap: 50,
+    level: 53,
+    cap: 55,
   },
   {
     type: StageType.Battle,
     description: "One final trainer challenges you.",
-    opponentTeam: buildOpponentTeam(6, 530),
-    level: 53,
-    cap: 53,
+    opponentTeam: buildOpponentTeam(6, 535),
+    level: 55,
+    cap: 55,
   },
 ]);
