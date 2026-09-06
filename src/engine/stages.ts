@@ -251,3 +251,14 @@ export const STAGES: Stage[] = [
     cap: 55,
   },
 ];
+
+/**
+ * Position of the stage at `stageIndex` among all stages of its own type, e.g. the 4th of 12 Catch
+ * stages. Used to number the stage header ("Wild Pokemon #4/12").
+ */
+export function stageTypePosition(stageIndex: number): { position: number; total: number } {
+  const type = STAGES[stageIndex]?.type;
+  const sameType = STAGES.filter((stage) => stage.type === type);
+  const position = STAGES.slice(0, stageIndex + 1).filter((stage) => stage.type === type).length;
+  return { position, total: sameType.length };
+}

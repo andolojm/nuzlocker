@@ -6,6 +6,7 @@ import { gameStateEngine } from "../engine/gameStateEngine";
 import type { AlivePokemon, BattleReplayLog } from "../engine/gameStateEngine";
 import { StageType } from "../engine/stage";
 import type { Stage } from "../engine/stage";
+import { stageTypePosition } from "../engine/stages";
 import { BattleLog } from "./battle/BattleLog";
 import { BattleScreen } from "./battle/BattleScreen";
 import { TeamChanger } from "./battle/TeamChanger";
@@ -38,7 +39,7 @@ export function StageFlow({ alivePokemon, stage }: StageFlowProps) {
   if (resumeLog) {
     return (
       <div>
-        <StageHeader stageType={resumeLog.stageType} />
+        <StageHeader stageType={resumeLog.stageType} stageIndex={resumeLog.stageIndex} />
         <Battle
           player={{ name: resumeLog.playerName, team: resumeLog.playerTeam }}
           opponent={{ name: resumeLog.opponentName, team: resumeLog.opponentTeam }}
@@ -53,11 +54,16 @@ export function StageFlow({ alivePokemon, stage }: StageFlowProps) {
   return <TeamSelection alivePokemon={alivePokemon} stage={stage} />;
 }
 
-/** "Trainer Battle!" or "Wild Pokemon", shown above team selection and carried through into the battle itself. */
-function StageHeader({ stageType }: { stageType: StageType }) {
+/**
+ * "Trainer Battle #12/20" or "Wild Pokemon #4/12", shown above team selection and carried through
+ * into the battle itself. The number is this stage's position among stages of the same type.
+ */
+function StageHeader({ stageType, stageIndex }: { stageType: StageType; stageIndex: number }) {
+  const { position, total } = stageTypePosition(stageIndex);
+  const label = stageType === StageType.Battle ? "Trainer Battle" : "Wild Pokemon";
   return (
     <h1 className="mb-4 text-center text-3xl font-extrabold text-slate-900">
-      {stageType === StageType.Battle ? "Trainer Battle!" : "Wild Pokemon"}
+      {label} #{position}/{total}
     </h1>
   );
 }
@@ -72,7 +78,7 @@ function TeamSelection({ alivePokemon, stage }: TeamSelectionProps) {
 
   return (
     <div>
-      <StageHeader stageType={stage.type} />
+      <StageHeader stageType={stage.type} stageIndex={gameStateEngine.current.state} />
       {!confirmedTeam ? (
         <TeamChanger
           alivePokemon={alivePokemon}
