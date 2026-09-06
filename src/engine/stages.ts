@@ -15,32 +15,12 @@ export function buildOpponentTeam(size: number, baseStrength: number, random: ()
   return Array.from({ length: size }, () => varyStrength(baseStrength, random));
 }
 
-/** Range the strength (bst constraint) passed to Catch stages' encounterPokemon call scales across. */
-const CATCH_STRENGTH_MIN = 300;
-const CATCH_STRENGTH_MAX = 575;
-
-/** Linearly scales `index` (0-based, out of `count` total) between CATCH_STRENGTH_MIN and _MAX. */
-function catchStrength(index: number, count: number): number {
-  if (count <= 1) return CATCH_STRENGTH_MIN;
-  const t = index / (count - 1);
-  return Math.round(CATCH_STRENGTH_MIN + t * (CATCH_STRENGTH_MAX - CATCH_STRENGTH_MIN));
-}
-
 /**
- * Assigns each Catch stage a `strength` scaled by its position among Catch stages specifically
- * (ignoring Battle/InitialChoice stages interspersed between them), so the run's wild encounters
- * get steadily tougher independent of how the Battle stages are paced.
+ * Each Catch stage's `strength` (bst constraint passed to encounterPokemon), hand-set here so the
+ * run's wild-encounter difficulty curve can be balanced directly instead of via a formula. These
+ * were originally computed by linearly scaling 300-575 across the run's 13 Catch stages.
  */
-function withCatchStrengths(stages: Stage[]): Stage[] {
-  const catchStageCount = stages.filter((stage) => stage.type === StageType.Catch).length;
-  let catchStageIndex = 0;
-  return stages.map((stage) => {
-    if (stage.type !== StageType.Catch) return stage;
-    return { ...stage, strength: catchStrength(catchStageIndex++, catchStageCount) };
-  });
-}
-
-export const STAGES: Stage[] = withCatchStrengths([
+export const STAGES: Stage[] = [
   {
     type: StageType.InitialChoice,
     description: "A researcher offers you a choice of three Pokémon to start your journey.",
@@ -50,14 +30,23 @@ export const STAGES: Stage[] = withCatchStrengths([
   {
     type: StageType.Catch,
     description: "A rustle in the grass — your first wild Pokémon encounter.",
+    strength: 300,
     level: 2,
     cap: 6,
     ballBonus: 1,
   },
-  { type: StageType.Catch, description: "Another wild Pokémon appears nearby.", level: 3, cap: 6, ballBonus: 1 },
+  {
+    type: StageType.Catch,
+    description: "Another wild Pokémon appears nearby.",
+    strength: 323,
+    level: 3,
+    cap: 6,
+    ballBonus: 1,
+  },
   {
     type: StageType.Catch,
     description: "One more wild Pokémon crosses your path.",
+    strength: 346,
     level: 2,
     cap: 6,
     ballBonus: 1,
@@ -86,6 +75,7 @@ export const STAGES: Stage[] = withCatchStrengths([
   {
     type: StageType.Catch,
     description: "A wild Pokémon rustles through the underbrush.",
+    strength: 369,
     level: 12,
     cap: 20,
     ballBonus: 1,
@@ -93,6 +83,7 @@ export const STAGES: Stage[] = withCatchStrengths([
   {
     type: StageType.Catch,
     description: "Another wild Pokémon catches your eye.",
+    strength: 392,
     level: 13,
     cap: 20,
     ballBonus: 1.5,
@@ -100,6 +91,7 @@ export const STAGES: Stage[] = withCatchStrengths([
   {
     type: StageType.Catch,
     description: "A third wild Pokémon appears before the next trainer battle.",
+    strength: 415,
     level: 13,
     cap: 20,
     ballBonus: 1.5,
@@ -121,6 +113,7 @@ export const STAGES: Stage[] = withCatchStrengths([
   {
     type: StageType.Catch,
     description: "A wild Pokémon rustles through the underbrush.",
+    strength: 438,
     level: 18,
     cap: 26,
     ballBonus: 1.5,
@@ -128,6 +121,7 @@ export const STAGES: Stage[] = withCatchStrengths([
   {
     type: StageType.Catch,
     description: "Another wild Pokémon catches your eye.",
+    strength: 460,
     level: 20,
     cap: 26,
     ballBonus: 1.5,
@@ -156,6 +150,7 @@ export const STAGES: Stage[] = withCatchStrengths([
   {
     type: StageType.Catch,
     description: "A wild Pokémon rustles through the underbrush.",
+    strength: 483,
     level: 25,
     cap: 35,
     ballBonus: 1.5,
@@ -163,6 +158,7 @@ export const STAGES: Stage[] = withCatchStrengths([
   {
     type: StageType.Catch,
     description: "Another wild Pokémon catches your eye.",
+    strength: 506,
     level: 26,
     cap: 35,
     ballBonus: 2,
@@ -205,6 +201,7 @@ export const STAGES: Stage[] = withCatchStrengths([
   {
     type: StageType.Catch,
     description: "A wild Pokémon appears at the edge of the path.",
+    strength: 529,
     level: 28,
     cap: 44,
     ballBonus: 2,
@@ -212,6 +209,7 @@ export const STAGES: Stage[] = withCatchStrengths([
   {
     type: StageType.Catch,
     description: "Another wild Pokémon appears nearby.",
+    strength: 552,
     level: 29,
     cap: 44,
     ballBonus: 2,
@@ -219,6 +217,7 @@ export const STAGES: Stage[] = withCatchStrengths([
   {
     type: StageType.Catch,
     description: "A final wild Pokémon appears before the road gets tougher.",
+    strength: 575,
     level: 40,
     cap: 44,
     ballBonus: 2,
@@ -251,4 +250,4 @@ export const STAGES: Stage[] = withCatchStrengths([
     level: 55,
     cap: 55,
   },
-]);
+];

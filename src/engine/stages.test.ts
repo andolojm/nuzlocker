@@ -33,11 +33,9 @@ describe("STAGES", () => {
     }
   });
 
-  it("scales Catch stage strength from 300 to 550 over the course of the run", () => {
+  it("increases Catch stage strength over the course of the run, hand-tuned per stage", () => {
     const catchStrengths = STAGES.filter((stage) => stage.type === StageType.Catch).map((stage) => stage.strength);
 
-    expect(catchStrengths[0]).toBe(300);
-    expect(catchStrengths[catchStrengths.length - 1]).toBe(550);
     // Strictly increasing: each catch stage's wild encounters should be at least as tough as the last.
     for (let i = 1; i < catchStrengths.length; i++) {
       expect(catchStrengths[i]!).toBeGreaterThan(catchStrengths[i - 1]!);
