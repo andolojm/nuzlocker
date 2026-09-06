@@ -262,3 +262,22 @@ export function stageTypePosition(stageIndex: number): { position: number; total
   const position = STAGES.slice(0, stageIndex + 1).filter((stage) => stage.type === type).length;
   return { position, total: sameType.length };
 }
+
+/**
+ * The next contiguous run of stages after the current one, once the stage type changes: its type and
+ * how many stages it contains. Used for the "Next: 3 Battles" sub-header. Returns null if no
+ * differently-typed stages remain.
+ */
+export function nextStageBlock(stageIndex: number): { type: StageType; count: number } | null {
+  const currentType = STAGES[stageIndex]?.type;
+  let i = stageIndex + 1;
+  while (i < STAGES.length && STAGES[i].type === currentType) i++;
+  if (i >= STAGES.length) return null;
+  const type = STAGES[i].type;
+  let count = 0;
+  while (i < STAGES.length && STAGES[i].type === type) {
+    count++;
+    i++;
+  }
+  return { type, count };
+}

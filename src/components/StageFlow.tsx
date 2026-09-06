@@ -6,7 +6,7 @@ import { gameStateEngine } from "../engine/gameStateEngine";
 import type { AlivePokemon, BattleReplayLog } from "../engine/gameStateEngine";
 import { StageType } from "../engine/stage";
 import type { Stage } from "../engine/stage";
-import { stageTypePosition } from "../engine/stages";
+import { nextStageBlock, stageTypePosition } from "../engine/stages";
 import { BattleLog } from "./battle/BattleLog";
 import { BattleScreen } from "./battle/BattleScreen";
 import { TeamChanger } from "./battle/TeamChanger";
@@ -61,10 +61,19 @@ export function StageFlow({ alivePokemon, stage }: StageFlowProps) {
 function StageHeader({ stageType, stageIndex }: { stageType: StageType; stageIndex: number }) {
   const { position, total } = stageTypePosition(stageIndex);
   const label = stageType === StageType.Battle ? "Trainer Battle" : "Wild Pokemon";
+  const next = nextStageBlock(stageIndex);
   return (
-    <h1 className="mb-4 text-center text-3xl font-extrabold text-slate-900">
-      {label} #{position}/{total}
-    </h1>
+    <div className="mb-4 text-center">
+      <h1 className="text-3xl font-extrabold text-slate-900">
+        {label} #{position}/{total}
+      </h1>
+      {next && (
+        <p className="text-sm font-semibold text-slate-600">
+          Next: {next.count} {next.type === StageType.Battle ? "Battle" : "Catch"}
+          {next.count === 1 ? "" : next.type === StageType.Battle ? "s" : "es"}
+        </p>
+      )}
+    </div>
   );
 }
 
