@@ -16,7 +16,7 @@ export function PokemonStatsList({ pokemon }: { pokemon: TeamPokemon }) {
     <ul>
       {STATS.map(({ key, label, isHp }) => (
         <li key={key}>
-          {label}: {calculateStat(pokemon.base[key], pokemon.ivs[key], pokemon.level, isHp)}{" "}
+          {label}: <span className="font-bold">{calculateStat(pokemon.base[key], pokemon.ivs[key], pokemon.level, isHp)}</span>{" "}
           <span className="text-xs italic">(IV {pokemon.ivs[key]})</span>
         </li>
       ))}
