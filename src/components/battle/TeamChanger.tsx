@@ -21,13 +21,15 @@ export interface TeamChangerProps {
   /** Max level a Pokemon can be leveled up to via the LVL UP button, at the current stage. */
   levelCap: number;
   onSubmit: (team: AlivePokemon[]) => void;
+  /** Label for the submit button that starts the stage. */
+  submitLabel: string;
 }
 
 function sortByActiveOrder(pokemon: AlivePokemon[]): AlivePokemon[] {
   return [...pokemon].sort((a, b) => (a.active ?? 0) - (b.active ?? 0));
 }
 
-export function TeamChanger({ alivePokemon, levelCap, onSubmit }: TeamChangerProps) {
+export function TeamChanger({ alivePokemon, levelCap, onSubmit, submitLabel }: TeamChangerProps) {
   const [active, setActive] = useState<AlivePokemon[]>(() =>
     sortByActiveOrder(alivePokemon.filter((pokemon) => pokemon.active !== undefined)),
   );
@@ -220,7 +222,7 @@ export function TeamChanger({ alivePokemon, levelCap, onSubmit }: TeamChangerPro
         </div>
       </div>
 
-      <div className="mt-4 flex justify-center">
+      <div className="mt-4">
         <button
           type="button"
           disabled={active.length === 0}
@@ -239,9 +241,9 @@ export function TeamChanger({ alivePokemon, levelCap, onSubmit }: TeamChangerPro
               onSubmit(active);
             }
           }}
-          className="rounded-md bg-slate-800 px-6 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-400"
+          className="w-full rounded-md bg-slate-800 px-6 py-2 text-3xl font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-400"
         >
-          SUBMIT
+          {submitLabel}
         </button>
       </div>
 

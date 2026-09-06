@@ -77,6 +77,7 @@ function TeamSelection({ alivePokemon, stage }: TeamSelectionProps) {
         <TeamChanger
           alivePokemon={alivePokemon}
           levelCap={stage.cap}
+          submitLabel={stage.type === StageType.Catch ? "Roam Tall Grass" : "Start Battle"}
           onSubmit={(team) => {
             gameStateEngine.setActiveTeam(team);
             setConfirmedTeam(team);
