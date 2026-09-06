@@ -166,7 +166,7 @@ export function BattleScreen({
                 type="button"
                 aria-label="Back"
                 onClick={() => setOpenMenu("none")}
-                className="flex h-full w-[35px] items-center justify-center rounded-md bg-slate-200 text-slate-800"
+                className="flex h-full w-[35px] items-center justify-center rounded-md bg-slate-500 text-slate-100"
               >
                 ←
               </button>
