@@ -2282,20 +2282,6 @@
     "accuracy": "—"
   },
   {
-    "id": "165",
-    "name": {
-      "english": "Struggle",
-      "japanese": "わるあがき",
-      "chinese": " 挣扎",
-      "french": "Lutte"
-    },
-    "type": "Normal",
-    "category": "Physical",
-    "pp": "1*",
-    "power": "50",
-    "accuracy": "—*"
-  },
-  {
     "id": "166",
     "name": {
       "english": "Sketch",
@@ -2980,20 +2966,6 @@
     "pp": "15",
     "power": "—",
     "accuracy": "90%"
-  },
-  {
-    "id": "218",
-    "name": {
-      "english": "Frustration",
-      "japanese": "やつあたり",
-      "chinese": " 迁怒",
-      "french": "Frustration"
-    },
-    "type": "Normal",
-    "category": "Physical",
-    "pp": "20",
-    "power": "—",
-    "accuracy": "100%"
   },
   {
     "id": "219",
@@ -6328,20 +6300,6 @@
     "accuracy": "75%*"
   },
   {
-    "id": "464",
-    "name": {
-      "english": "Dark Void",
-      "japanese": "ダークホール",
-      "french": "Trou Noir",
-      "chinese": "暗黑洞"
-    },
-    "type": "Dark",
-    "category": "Status",
-    "pp": "10",
-    "power": "—",
-    "accuracy": "50%*"
-  },
-  {
     "id": "465",
     "name": {
       "english": "Seed Flare",
@@ -7644,20 +7602,6 @@
     "accuracy": "—"
   },
   {
-    "id": "562",
-    "name": {
-      "english": "Belch",
-      "japanese": "ゲップ",
-      "french": "Éructation",
-      "chinese": "打嗝"
-    },
-    "type": "Poison",
-    "category": "Special",
-    "pp": "10",
-    "power": "120",
-    "accuracy": "90%"
-  },
-  {
     "id": "563",
     "name": {
       "english": "Rototiller",
@@ -8426,20 +8370,6 @@
     "pp": "5",
     "power": "120",
     "accuracy": "100%"
-  },
-  {
-    "id": "621",
-    "name": {
-      "english": "Hyperspace Fury",
-      "japanese": "いじげんラッシュ",
-      "french": "Furie Dimension",
-      "chinese": "异次元猛攻"
-    },
-    "type": "Dark",
-    "category": "Physical",
-    "pp": "5",
-    "power": "100",
-    "accuracy": "—"
   },
   {
     "id": "659",
