@@ -55,7 +55,7 @@ function buildPokemon(overrides: Partial<Pokemon> = {}): Pokemon {
 }
 
 function buildTeamPokemon(overrides: Partial<Pokemon> = {}, moveNames: string[] = ["Tackle"]): TeamPokemon {
-  return { ...buildPokemon(overrides), moves: buildFourMoves(moveNames), level: 50 };
+  return { ...buildPokemon(overrides), moves: buildFourMoves(moveNames), ability: "Overgrow", level: 50 };
 }
 
 function buildCaterpie(overrides: Partial<Pokemon> = {}): TeamPokemon {
@@ -88,10 +88,17 @@ describe("buildShowdownTeam", () => {
     expect(set.species).toBe("Onix");
     expect(set.name).toBe("Onix");
     expect(set.level).toBe(50);
-    expect(set.ability).toBe("rockhead");
+    // The rolled ability (buildTeamPokemon's default), not Onix's species default of Rock Head / Sturdy.
+    expect(set.ability).toBe("overgrow");
     expect(set.moves).toEqual(["tackle", "growl", "leer", "protect"]);
     expect(set.evs).toEqual({ hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 });
     expect(set.ivs).toEqual({ hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 });
+  });
+
+  it("passes an arbitrary rolled ability through, even one the species can't legally have", () => {
+    const [set] = buildShowdownTeam([buildTeamPokemon({}, ["Tackle"])].map((p) => ({ ...p, ability: "Drizzle" })));
+
+    expect(set.ability).toBe("drizzle");
   });
 
   it("maps each TeamPokemon's own per-stat IVs, not a flat default", () => {

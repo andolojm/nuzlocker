@@ -67,6 +67,8 @@ export interface UseBattleControllerResult {
   opponentHp: HpValue;
   playerStatus: StatusCode | null;
   opponentStatus: StatusCode | null;
+  /** Display names of moves the active opponent Pokemon has been seen using so far this battle. */
+  opponentRevealedMoves: string[];
   playerParty: PartySlot[];
   turnEvents: string[];
   /** Every turn's recap so far, each prefixed with a `Turn N: <player> (lvX) \ <opponent> (lvY)` header line. */
@@ -90,6 +92,8 @@ interface Snapshot {
   opponentActiveIndex: number;
   playerStatus: (StatusCode | null)[];
   opponentStatus: (StatusCode | null)[];
+  /** Display names of moves the opponent's active Pokemon have been seen using, in first-seen order. */
+  opponentRevealedMoves: string[][];
 }
 
 function fullHp(pokemon: TeamPokemon): HpValue {
@@ -129,6 +133,7 @@ export function useBattleController(
   const playerStatusRef = useRef<(StatusCode | null)[]>(player.team.map(() => null));
   const opponentStatusRef = useRef<(StatusCode | null)[]>(opponent.team.map(() => null));
   const deadReportedRef = useRef(new Set<number>());
+  const opponentRevealedMovesRef = useRef<string[][]>(opponent.team.map(() => []));
   const logBufferRef = useRef<string[]>([]);
   const turnNumberRef = useRef(1);
   /** Which Pokemon were active at the *start* of the turn currently being buffered, for the next battle log header. */
@@ -152,6 +157,7 @@ export function useBattleController(
     opponentActiveIndex: 0,
     playerStatus: playerStatusRef.current,
     opponentStatus: opponentStatusRef.current,
+    opponentRevealedMoves: opponentRevealedMovesRef.current,
   }));
 
   const takeSnapshot = useCallback(
@@ -162,6 +168,7 @@ export function useBattleController(
       opponentActiveIndex: opponentActiveIndexRef.current,
       playerStatus: [...playerStatusRef.current],
       opponentStatus: [...opponentStatusRef.current],
+      opponentRevealedMoves: opponentRevealedMovesRef.current.map((moves) => [...moves]),
     }),
     [],
   );
@@ -218,6 +225,16 @@ export function useBattleController(
           opponentActiveIndexRef.current = index;
           opponentHpRef.current[index] = hp;
           opponentStatusRef.current[index] = status;
+        }
+        return;
+      }
+
+      if (type === "move") {
+        const ident = parts[2] ?? "";
+        const moveName = parts[3];
+        if (moveName && ident.startsWith("p2")) {
+          const revealed = opponentRevealedMovesRef.current[opponentActiveIndexRef.current];
+          if (revealed && !revealed.includes(moveName)) revealed.push(moveName);
         }
         return;
       }
@@ -491,6 +508,7 @@ export function useBattleController(
     opponentHp: snapshot.opponentHp[snapshot.opponentActiveIndex],
     playerStatus: snapshot.playerStatus[snapshot.playerActiveIndex] ?? null,
     opponentStatus: snapshot.opponentStatus[snapshot.opponentActiveIndex] ?? null,
+    opponentRevealedMoves: snapshot.opponentRevealedMoves[snapshot.opponentActiveIndex] ?? [],
     playerParty: buildPlayerParty(),
     turnEvents,
     battleLog,

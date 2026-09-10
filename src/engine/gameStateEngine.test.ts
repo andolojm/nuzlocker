@@ -63,7 +63,7 @@ function buildPokemon(overrides: Partial<Pokemon> = {}): Pokemon {
 }
 
 function buildTeamPokemon(overrides: Partial<Pokemon> = {}): TeamPokemon {
-  return { ...buildPokemon(overrides), moves: buildFourMoves(), level: 50 };
+  return { ...buildPokemon(overrides), moves: buildFourMoves(), ability: "Overgrow", level: 50 };
 }
 
 function buildItem(overrides: Partial<Item> = {}): Item {
@@ -115,6 +115,27 @@ describe("GameStateEngine", () => {
       tms: [],
       battleLog: null,
     });
+  });
+
+  it("backfills a random ability on Pokemon persisted before abilities existed", () => {
+    const legacyMon = buildTeamPokemon();
+    delete (legacyMon as { ability?: string }).ability;
+    localStorage.setItem(
+      GAME_STATE_STORAGE_KEY,
+      JSON.stringify({
+        state: 0,
+        pokemon: { alive: [{ ...legacyMon, active: 1 }], dead: [legacyMon] },
+        bag: [],
+        tms: [],
+        battleLog: null,
+      }),
+    );
+
+    const engine = new GameStateEngine();
+
+    expect(typeof engine.current.pokemon.alive[0].ability).toBe("string");
+    expect(engine.current.pokemon.alive[0].ability.length).toBeGreaterThan(0);
+    expect(typeof engine.current.pokemon.dead[0].ability).toBe("string");
   });
 
   describe("bag", () => {

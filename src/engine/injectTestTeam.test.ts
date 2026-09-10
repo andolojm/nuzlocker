@@ -48,7 +48,12 @@ function buildMove(overrides: Partial<Move> = {}): Move {
 }
 
 function buildTeamPokemon(overrides: Partial<Pokemon> = {}): TeamPokemon {
-  return { ...buildPokemon(overrides), moves: [buildMove(), buildMove(), buildMove(), buildMove()], level: 5 };
+  return {
+    ...buildPokemon(overrides),
+    moves: [buildMove(), buildMove(), buildMove(), buildMove()],
+    ability: "Overgrow",
+    level: 5,
+  };
 }
 
 describe("injectTestTeam", () => {

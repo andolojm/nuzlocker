@@ -11,7 +11,9 @@ import pokedexData from "../vendor/pokemon-data/pokedex.json";
 import movesData from "../vendor/pokemon-data/moves.json";
 import itemsData from "../vendor/pokemon-data/items.json";
 import typesData from "../vendor/pokemon-data/types.json";
+import abilitiesData from "../vendor/pokemon-data/abilities.json";
 import type {
+  Ability,
   Item,
   Move,
   NameOrId,
@@ -26,6 +28,26 @@ const pokedex = pokedexData as unknown as RawPokemon[];
 const moves = movesData as unknown as Move[];
 const items = itemsData as unknown as Item[];
 const types = typesData as unknown as PokemonType[];
+const abilities = abilitiesData as unknown as Ability[];
+
+/** Abilities eligible for random assignment (see Ability.hidden). Filtered once at module load. */
+const assignableAbilities = abilities.filter((ability) => !ability.hidden);
+
+/**
+ * A random non-hidden ability's name, chosen synchronously. Exported for callers that can't await
+ * (e.g. the synchronous save-state backfill in gameStateEngine); most code should use
+ * PikaLocal.getRandomAbility instead.
+ */
+export function randomAbilityName(random: () => number = Math.random): string {
+  return assignableAbilities[Math.floor(random() * assignableAbilities.length)].name;
+}
+
+const abilitiesByName = new Map(abilities.map((ability) => [normalize(ability.name), ability]));
+
+/** Synchronous name lookup for UI that already holds an ability name and just needs its description. */
+export function abilityByName(name: string): Ability | undefined {
+  return abilitiesByName.get(normalize(name));
+}
 
 // Sorted once at module load (dex order on disk is left alone for readability/diffability) so bst
 // range queries are a binary search + slice instead of an O(n) filter. At 898 entries a plain filter
@@ -170,6 +192,19 @@ export class PikaLocal {
     const tm = tms.find((candidate) => candidate.id === id);
     if (!tm) throw new PikaLocalNotFoundError("TM", id);
     return tm;
+  }
+
+  static async getAllAbilities(): Promise<Ability[]> {
+    return abilities;
+  }
+
+  /** Only ever returns a non-hidden ability (see Ability.hidden). */
+  static async getRandomAbility(random: () => number = Math.random): Promise<Ability> {
+    return assignableAbilities[Math.floor(random() * assignableAbilities.length)];
+  }
+
+  static async getAbility(nameOrId: NameOrId): Promise<Ability> {
+    return findByIdOrName(abilities, nameOrId, (a) => a.id, (a) => a.name, "Ability");
   }
 
   static async getAllTypes(): Promise<PokemonType[]> {

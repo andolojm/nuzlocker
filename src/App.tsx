@@ -49,6 +49,7 @@ const mockPlayerPokemon: TeamPokemon = {
     mockMove("Ember", "Fire", "40"),
     mockMove("Smokescreen", "Normal", "—"),
   ],
+  ability: "Blaze",
   level: 12,
 };
 
@@ -80,6 +81,7 @@ const mockAvailablePokemon: TeamPokemon = {
     mockMove("Vine Whip", "Grass", "45"),
     mockMove("Leech Seed", "Grass", "—"),
   ],
+  ability: "Overgrow",
   level: 11,
 };
 

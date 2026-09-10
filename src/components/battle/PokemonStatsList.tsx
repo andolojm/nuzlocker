@@ -10,14 +10,25 @@ const STATS: { key: keyof TeamPokemon["base"]; label: string; isHp: boolean }[] 
   { key: "Speed", label: "Speed", isHp: false },
 ];
 
-/** A Pokemon's real, level/IV-scaled stats — not its raw species base stats. */
-export function PokemonStatsList({ pokemon }: { pokemon: TeamPokemon }) {
+/**
+ * A Pokemon's real, level/IV-scaled stats — not its raw species base stats.
+ *
+ * `censorIvs` hides the exact IV (used for opponents, whose IVs the player shouldn't see) and shows
+ * a fixed `(+IV ??)` placeholder instead. The stat value itself is still exact.
+ */
+export function PokemonStatsList({
+  pokemon,
+  censorIvs = false,
+}: {
+  pokemon: TeamPokemon;
+  censorIvs?: boolean;
+}) {
   return (
     <ul>
       {STATS.map(({ key, label, isHp }) => (
         <li key={key}>
           {label}: <span className="font-bold">{calculateStat(pokemon.base[key], pokemon.ivs[key], pokemon.level, isHp)}</span>{" "}
-          <span className="text-xs italic">(IV {pokemon.ivs[key]})</span>
+          <span className="text-xs italic">{censorIvs ? "(+IV ??)" : `(IV ${pokemon.ivs[key]})`}</span>
         </li>
       ))}
     </ul>

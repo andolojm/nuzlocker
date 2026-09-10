@@ -49,6 +49,7 @@ function buildTeamPokemon(overrides: Partial<Pokemon> = {}): TeamPokemon {
   return {
     ...buildPokemon(overrides),
     moves: [buildMove(), buildMove(), buildMove(), buildMove()],
+    ability: "Overgrow",
     level: 5,
   };
 }
@@ -62,6 +63,12 @@ describe("encounterPokemon", () => {
     const pikachu = buildPokemon();
     const moves = [buildMove({ id: "1" }), buildMove({ id: "2" }), buildMove({ id: "3" }), buildMove({ id: "4" })];
     jest.spyOn(PikaLocal, "getRandomPokemon").mockResolvedValue(pikachu);
+    jest.spyOn(PikaLocal, "getRandomAbility").mockResolvedValue({
+      id: 1,
+      name: "Static",
+      description: "Contact with the Pokémon may cause paralysis.",
+      hidden: false,
+    });
     jest
       .spyOn(PikaLocal, "getRandomMove")
       .mockResolvedValueOnce(moves[0])
@@ -71,7 +78,7 @@ describe("encounterPokemon", () => {
 
     const result = await encounterPokemon(1, [], undefined, LEVEL);
 
-    expect(result).toEqual({ ...pikachu, level: LEVEL, moves });
+    expect(result).toEqual({ ...pikachu, level: LEVEL, moves, ability: "Static" });
   });
 
   it("sets the level to the given level argument", async () => {
@@ -91,6 +98,18 @@ describe("encounterPokemon", () => {
 
     expect(result.moves).toHaveLength(4);
     expect(spy).toHaveBeenCalledTimes(4);
+  });
+
+  it("assigns a real, non-hidden ability from the vendored ability data", async () => {
+    jest.spyOn(PikaLocal, "getRandomPokemon").mockResolvedValue(buildPokemon());
+    jest.spyOn(PikaLocal, "getRandomMove").mockResolvedValue(buildMove());
+
+    const result = await encounterPokemon(1, [], undefined, LEVEL);
+
+    const abilities = await PikaLocal.getAllAbilities();
+    const match = abilities.find((ability) => ability.name === result.ability);
+    expect(match).toBeDefined();
+    expect(match?.hidden).toBe(false);
   });
 
   it("ignores the stage argument", async () => {

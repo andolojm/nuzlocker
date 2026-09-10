@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { AlivePokemon, OwnedTM, TeamPokemon } from "../../engine/gameStateEngine";
 import { gameStateEngine } from "../../engine/gameStateEngine";
 import { useGameState } from "../../engine/useGameState";
+import { AbilityLine } from "./AbilityLine";
 import { MoveTile } from "./MoveTile";
 import { PokemonStatsList } from "./PokemonStatsList";
 import { TMSelectModal } from "./TMSelectModal";
@@ -24,6 +25,14 @@ export interface PokemonInfoModalProps {
    * methods like setActiveTeam key off exact identity, so a stale reference breaks later on.
    */
   onPokemonUpdated?: (updated: AlivePokemon) => void;
+  /**
+   * "opponent" hides information the player shouldn't have about an enemy Pokemon: exact IVs are
+   * censored and the move list shows only the moves it has actually used so far (`revealedMoves`),
+   * as plain text, instead of its full moveset.
+   */
+  variant?: "self" | "opponent";
+  /** Display names of the opponent's moves seen so far. Only read when `variant` is "opponent". */
+  revealedMoves?: string[];
 }
 
 export function PokemonInfoModal({
@@ -32,7 +41,10 @@ export function PokemonInfoModal({
   onConfirm,
   allowTeachMove,
   onPokemonUpdated,
+  variant = "self",
+  revealedMoves = [],
 }: PokemonInfoModalProps) {
+  const isOpponent = variant === "opponent";
   const gameState = useGameState();
   const [teachMoveIndex, setTeachMoveIndex] = useState<number | null>(null);
 
@@ -88,9 +100,10 @@ export function PokemonInfoModal({
             />
             <div className="flex-1 text-left">
               <h3 className="font-semibold">
-                Stats / IVs <span className="text-xs font-normal italic">(BST {displayPokemon.bst})</span>
+                {isOpponent ? "Stats" : "Stats / IVs"}{" "}
+                <span className="text-xs font-normal italic">(BST {displayPokemon.bst})</span>
               </h3>
-              <PokemonStatsList pokemon={displayPokemon} />
+              <PokemonStatsList pokemon={displayPokemon} censorIvs={isOpponent} />
             </div>
           </div>
 
@@ -100,7 +113,28 @@ export function PokemonInfoModal({
             ))}
           </div>
 
+          <div className="mt-2">
+            {isOpponent ? (
+              <p className="text-xs min-[600px]:text-sm">
+                <span className="font-semibold">Ability:</span> <span className="italic text-slate-600">??? </span>
+              </p>
+            ) : (
+              <AbilityLine ability={displayPokemon.ability} />
+            )}
+          </div>
+
           <h3 className="mt-2 font-semibold">Moves</h3>
+          {isOpponent ? (
+            revealedMoves.length > 0 ? (
+              <ul className="list-inside list-disc">
+                {revealedMoves.map((move) => (
+                  <li key={move}>{move}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="italic text-slate-600">No moves seen yet.</p>
+            )
+          ) : (
           <div className="grid grid-cols-1 gap-1.5 min-[600px]:grid-cols-2">
             {displayPokemon.moves.map((move, index) => (
               <div key={index} className="flex items-stretch gap-1">
@@ -119,6 +153,7 @@ export function PokemonInfoModal({
               </div>
             ))}
           </div>
+          )}
 
           <div className="mt-3 border-t border-slate-200 pt-2 text-xs text-slate-600 min-[600px]:text-sm">
             {translations.map((line) => (

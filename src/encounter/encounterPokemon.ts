@@ -27,13 +27,14 @@ export async function encounterPokemon(
     pokemon = await PikaLocal.getRandomPokemon(minBst, maxBst);
   } while (avoidDuplicates && caughtIds.has(pokemon.id));
 
-  const [move1, move2, move3, move4] = await Promise.all([
+  const [move1, move2, move3, move4, ability] = await Promise.all([
     PikaLocal.getRandomMove(),
     PikaLocal.getRandomMove(),
     PikaLocal.getRandomMove(),
     PikaLocal.getRandomMove(),
+    PikaLocal.getRandomAbility(),
   ]);
   const evolution = await resolveEvolution(pokemon);
 
-  return { ...pokemon, level, moves: [move1, move2, move3, move4], ...evolution };
+  return { ...pokemon, level, moves: [move1, move2, move3, move4], ability: ability.name, ...evolution };
 }

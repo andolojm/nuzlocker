@@ -1,3 +1,4 @@
+import { randomAbilityName } from "../api/pikaLocal";
 import type { Item, Move, Pokemon, TM } from "../api/pikaserve";
 import type { StageType } from "./stage";
 
@@ -6,6 +7,8 @@ export type FourMoves = [Move, Move, Move, Move];
 export interface TeamPokemon extends Pokemon {
   moves: FourMoves;
   level: number;
+  /** Name of this Pokemon's ability — rolled randomly on creation, then fixed (carries through evolution). */
+  ability: string;
   /** Species id this Pokemon evolves into, if it evolves at all. */
   evolvesInto?: number;
   /** Level `evolvesInto` kicks in at — parsed off a level-based condition, or rolled once otherwise. */
@@ -71,9 +74,27 @@ function createInitialState(): GameState {
   };
 }
 
+/** Rolls a random non-hidden ability for any Pokemon saved before abilities existed. */
+function withAbility<T extends TeamPokemon>(pokemon: T): T {
+  return pokemon.ability ? pokemon : { ...pokemon, ability: randomAbilityName() };
+}
+
 /** Backfills fields added after a state may have been saved/exported, so old data doesn't break. */
 function withDefaults(state: GameState): GameState {
-  return { ...state, tms: state.tms ?? [], battleLog: state.battleLog ?? null };
+  const battleLog = state.battleLog ?? null;
+  return {
+    ...state,
+    tms: state.tms ?? [],
+    pokemon: {
+      alive: state.pokemon.alive.map(withAbility),
+      dead: state.pokemon.dead.map(withAbility),
+    },
+    battleLog: battleLog && {
+      ...battleLog,
+      playerTeam: battleLog.playerTeam.map(withAbility),
+      opponentTeam: battleLog.opponentTeam.map(withAbility),
+    },
+  };
 }
 
 function getStorage(): Storage | undefined {

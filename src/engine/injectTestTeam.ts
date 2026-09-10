@@ -8,19 +8,26 @@ export const TEST_TEAM_LEVEL = 50;
 export const TEST_TEAM_ACTIVE_SIZE = 6;
 
 async function buildRandomTeamPokemon(): Promise<TeamPokemon> {
-  const [pokemon, move1, move2, move3, move4] = await Promise.all([
+  const [pokemon, move1, move2, move3, move4, ability] = await Promise.all([
     PikaLocal.getRandomPokemon(),
     PikaLocal.getRandomMove(),
     PikaLocal.getRandomMove(),
     PikaLocal.getRandomMove(),
     PikaLocal.getRandomMove(),
+    PikaLocal.getRandomAbility(),
   ]);
 
   const evolution = await resolveEvolution(pokemon);
 
   // TeamPokemon has no IV/EV/nature fields to set — battleSimulator.ts already treats every
   // team member as flawless IVs / 0 EVs / neutral nature when converting to a Showdown team.
-  return { ...pokemon, level: TEST_TEAM_LEVEL, moves: [move1, move2, move3, move4], ...evolution };
+  return {
+    ...pokemon,
+    level: TEST_TEAM_LEVEL,
+    moves: [move1, move2, move3, move4],
+    ability: ability.name,
+    ...evolution,
+  };
 }
 
 /** Deletes any existing Pokemon, then adds 10 random level-50 Pokemon to the alive party and sets the first 6 as the active team. */

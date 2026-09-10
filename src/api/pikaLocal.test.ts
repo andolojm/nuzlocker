@@ -229,4 +229,39 @@ describe("PikaLocal", () => {
       await expect(PikaLocal.getType("not-a-real-type")).rejects.toThrow(PikaLocalNotFoundError);
     });
   });
+
+  describe("abilities", () => {
+    it("getAllAbilities returns the full ability database", async () => {
+      const abilities = await PikaLocal.getAllAbilities();
+
+      expect(abilities.length).toBeGreaterThan(250);
+      expect(abilities[0]).toHaveProperty("name");
+      expect(abilities[0]).toHaveProperty("description");
+      expect(abilities[0]).toHaveProperty("hidden");
+    });
+
+    it("getAbility looks up by name (whitespace-insensitive) and by id", async () => {
+      const byName = await PikaLocal.getAbility("compound eyes");
+      expect(byName.name).toBe("Compound Eyes");
+
+      const byId = await PikaLocal.getAbility(byName.id);
+      expect(byId.name).toBe("Compound Eyes");
+    });
+
+    it("throws PikaLocalNotFoundError for an unknown ability", async () => {
+      await expect(PikaLocal.getAbility("not-a-real-ability")).rejects.toThrow(PikaLocalNotFoundError);
+    });
+
+    it("getRandomAbility never returns a hidden ability", async () => {
+      const all = await PikaLocal.getAllAbilities();
+      const hidden = all.filter((ability) => ability.hidden);
+      expect(hidden.length).toBeGreaterThan(0); // guard: the exclusion list isn't empty
+
+      // Sweep the whole [0,1) index space; every pick must be assignable.
+      for (let i = 0; i < 1000; i++) {
+        const picked = await PikaLocal.getRandomAbility(() => i / 1000);
+        expect(picked.hidden).toBe(false);
+      }
+    });
+  });
 });

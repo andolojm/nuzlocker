@@ -115,7 +115,10 @@ function toPokemonSet(pokemon: TeamPokemon, nickname: string): PokemonSet {
     name: nickname,
     species: species.name,
     item: "",
-    ability: toID(species.abilities[0]),
+    // The rolled ability (any non-hidden ability, not necessarily one this species can legally
+    // have) — gen9customgame runs no ability legality check, so the sim just uses it. Falls back
+    // to the species default only for a Pokemon created before abilities existed.
+    ability: toID(pokemon.ability ?? species.abilities[0]),
     moves,
     nature: "Serious",
     gender: species.gender || "N",

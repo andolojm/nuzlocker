@@ -1,5 +1,6 @@
 import type { Move } from "../../api/pikaserve";
 import type { FourMoves, TeamPokemon } from "../../engine/gameStateEngine";
+import { AbilityLine } from "./AbilityLine";
 import { MoveTile } from "./MoveTile";
 import { PokemonStatsList } from "./PokemonStatsList";
 import { TypeChip } from "./TypeChip";
@@ -60,6 +61,10 @@ export function LevelUpModal({ pokemon, fromName, moveChoice, onClose }: LevelUp
           {pokemon.type.map((type) => (
             <TypeChip key={type} type={type} />
           ))}
+        </div>
+
+        <div className="mt-2 text-left">
+          <AbilityLine ability={pokemon.ability} />
         </div>
 
         {moveChoice ? (

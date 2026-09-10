@@ -101,6 +101,18 @@ export interface Item {
   name: LocalizedName;
 }
 
+export interface Ability {
+  id: number;
+  name: string;
+  description: string;
+  /**
+   * Local curation flag (not the games' hidden-ability concept): when true, the ability is
+   * excluded from random-ability assignment — form-locked abilities, ones the battle sim can't
+   * model, and anything else that misbehaves on an arbitrary Pokemon.
+   */
+  hidden: boolean;
+}
+
 /** A TM: every move is teachable, one-to-one, via its own TM (id doubles as the move's own id). */
 export interface TM {
   id: number;

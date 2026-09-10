@@ -21,6 +21,8 @@ export interface BattleScreenProps {
   opponentHp: HpValue;
   playerStatus: StatusCode | null;
   opponentStatus: StatusCode | null;
+  /** Display names of moves the opponent has been seen using so far — shown in its info modal. */
+  opponentRevealedMoves: string[];
   playerParty: PartySlot[];
   stageType: StageType;
   /** Ball multiplier for the active Catch stage; ignored for Battle stages. */
@@ -46,6 +48,7 @@ export function BattleScreen({
   opponentHp,
   playerStatus,
   opponentStatus,
+  opponentRevealedMoves,
   playerParty,
   stageType,
   ballBonus,
@@ -60,6 +63,7 @@ export function BattleScreen({
   const [openMenu, setOpenMenu] = useState<OpenMenu>("none");
   const [submenuOpenedViaKeyboard, setSubmenuOpenedViaKeyboard] = useState(false);
   const [showPlayerInfo, setShowPlayerInfo] = useState(false);
+  const [showOpponentInfo, setShowOpponentInfo] = useState(false);
   const disabledActions = stageType === StageType.Battle ? BATTLE_DISABLED_ACTIONS : [];
   const isOutcomePhase = phase === "victory" || phase === "defeat" || phase === "caught" || phase === "ran";
 
@@ -94,6 +98,7 @@ export function BattleScreen({
             hp={opponentHp}
             status={opponentStatus}
             statusChipPosition="bottom-right"
+            onInfoClick={() => setShowOpponentInfo(true)}
           />
         </div>
         <img
@@ -177,6 +182,14 @@ export function BattleScreen({
 
       {isOutcomePhase && <OutcomeModal variant={phase} onAdvance={onAdvance} awardedTMs={awardedTMs} />}
       {showPlayerInfo && <PokemonInfoModal pokemon={playerPokemon} onClose={() => setShowPlayerInfo(false)} />}
+      {showOpponentInfo && (
+        <PokemonInfoModal
+          pokemon={opponentPokemon}
+          variant="opponent"
+          revealedMoves={opponentRevealedMoves}
+          onClose={() => setShowOpponentInfo(false)}
+        />
+      )}
     </div>
   );
 }

@@ -99,6 +99,7 @@ export function TeamChanger({ alivePokemon, levelCap, onSubmit, submitLabel }: T
         ...newSpecies,
         moves: pokemon.moves,
         ivs: pokemon.ivs,
+        ability: pokemon.ability,
         level: targetLevel,
         evolvesInto: nextEvolution?.evolvesInto,
         evolutionLevel: nextEvolution?.evolutionLevel,
