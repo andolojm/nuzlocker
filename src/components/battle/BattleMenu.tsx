@@ -32,6 +32,7 @@ export function BattleMenu({ disabledActions = [], active = true, ballBonus, onS
     >
       {ACTIONS.map((action, index) => {
         const disabled = disabledActions.includes(action);
+        const showsBallIcon = action === "CATCH" && ballBonus !== undefined;
 
         return (
           <button
@@ -45,8 +46,10 @@ export function BattleMenu({ disabledActions = [], active = true, ballBonus, onS
               setSelected(index);
               onSelect?.(action, false);
             }}
-            aria-label={action === "CATCH" && ballBonus !== undefined ? "CATCH" : undefined}
+            aria-label={showsBallIcon ? "CATCH" : undefined}
             className={`flex items-center justify-center rounded-md text-sm font-bold ${
+              showsBallIcon ? "border-2 border-green-500" : ""
+            } ${
               disabled
                 ? "cursor-not-allowed bg-slate-100 text-slate-400"
                 : index === selected
@@ -54,11 +57,7 @@ export function BattleMenu({ disabledActions = [], active = true, ballBonus, onS
                   : "bg-slate-200 text-slate-800"
             }`}
           >
-            {action === "CATCH" && ballBonus !== undefined ? (
-              <BallIcon ballBonus={ballBonus} className="h-8 w-8" />
-            ) : (
-              action
-            )}
+            {showsBallIcon ? <BallIcon ballBonus={ballBonus} className="h-8 w-8" /> : action}
           </button>
         );
       })}

@@ -116,10 +116,14 @@ describe("PikaLocal", () => {
     });
 
     it("getRandomMove caps power at 40 for a level 1 Pokemon", async () => {
+      // Self-Destruct/Explosion/Misty Explosion are deliberately exempt from the cap (see movePowerCap.ts).
+      const exempt = ["Self-Destruct", "Explosion", "Misty Explosion"];
       for (let i = 0; i < 30; i++) {
         const move = await PikaLocal.getRandomMove(1);
         const power = parseFloat(move.power);
-        if (Number.isFinite(power)) expect(power).toBeLessThanOrEqual(40);
+        if (Number.isFinite(power) && !exempt.includes(move.name.english)) {
+          expect(power).toBeLessThanOrEqual(40);
+        }
       }
     });
 
