@@ -1,8 +1,8 @@
-import { Dex } from "@pkmn/sim";
 import { useEffect, useMemo, useState } from "react";
 import { PikaLocal } from "../api/pikaLocal";
 import { getHiddenMoveIds, setHiddenMoveIds } from "../api/moveVisibility";
 import type { Move } from "../api/pikaserve";
+import { moveDescription } from "../battle/moveDescription";
 import { TypeChip } from "./battle/TypeChip";
 import { bulbapediaMoveUrl } from "../util/externalLinks";
 
@@ -15,11 +15,6 @@ export interface MoveVisibilityEditorProps {
 function parsePower(power: string): number {
   const value = parseFloat(power);
   return Number.isFinite(value) ? value : -1;
-}
-
-function moveDescription(move: Move): string {
-  const dexMove = Dex.moves.get(move.name.english);
-  return dexMove?.shortDesc || dexMove?.desc || "";
 }
 
 /**

@@ -45,6 +45,7 @@ export function MoveSelectMenu({
           }}
           defenderTypes={defenderTypes}
           attackerTypes={attackerTypes}
+          showDescription={false}
         />
       ))}
     </div>

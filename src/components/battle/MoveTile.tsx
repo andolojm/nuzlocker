@@ -1,5 +1,6 @@
 import type { Move } from "../../api/pikaserve";
 import { getEffectivenessMultiplier } from "../../battle/typeEffectiveness";
+import { moveDescription } from "../../battle/moveDescription";
 import { bulbapediaMoveUrl } from "../../util/externalLinks";
 import { TYPE_COLORS, typeTintOnWhite } from "./TypeChip";
 
@@ -11,6 +12,9 @@ export interface MoveTileProps {
   defenderTypes?: string[];
   /** When provided, shows a star next to the type chip for a non-Status move matching one of these types (STAB). */
   attackerTypes?: string[];
+  /** Shows a full-width, single-line (truncated) description row at the bottom of the tile.
+   * Defaults to true; the battle screen's FIGHT menu turns it off to keep its fixed-height grid compact. */
+  showDescription?: boolean;
 }
 
 /** Arrows/X hinting how effective a move is against `defenderTypes` — 2x/4x up, 0.5x/0.25x down, 0x an X. */
@@ -67,10 +71,19 @@ function EffectivenessIndicator({ moveType, defenderTypes }: { moveType: string;
   return null;
 }
 
-/** A single move's tile, as used in the battle FIGHT menu — name/PWR/ACC on the left, PP/category/type chip on the right. */
-export function MoveTile({ move, selected = false, onClick, defenderTypes, attackerTypes }: MoveTileProps) {
+/** A single move's tile — name/PWR/ACC on the left, PP/category/type chip on the right, with an
+ * optional full-width description row at the bottom (see showDescription). */
+export function MoveTile({
+  move,
+  selected = false,
+  onClick,
+  defenderTypes,
+  attackerTypes,
+  showDescription = true,
+}: MoveTileProps) {
   const isStatus = move.category === "Status";
   const isStab = !isStatus && (attackerTypes?.includes(move.type) ?? false);
+  const description = showDescription ? moveDescription(move) : "";
 
   return (
     <div
@@ -79,47 +92,54 @@ export function MoveTile({ move, selected = false, onClick, defenderTypes, attac
       tabIndex={-1}
       onClick={onClick}
       style={isStatus ? undefined : { backgroundColor: typeTintOnWhite(move.type, 0.25) }}
-      className={`flex cursor-pointer items-center justify-between gap-2 rounded-md border-2 border-black bg-white px-2 pt-1 pb-2 text-left text-sm font-semibold text-slate-900 ${
+      className={`flex cursor-pointer flex-col gap-1 rounded-md border-2 border-black bg-white px-2 pt-1 pb-2 text-left text-sm font-semibold text-slate-900 ${
         selected ? "ring-2 ring-offset-1 ring-blue-500" : ""
       }`}
     >
-      <div className="min-w-0 leading-tight">
-        <div className="truncate max-[600px]:text-[11px]">{move.name.english}</div>
-        <div className="text-[10px] font-normal opacity-75">
-          {move.power === "—" ? "" : `${move.power}p,`} {move.accuracy}
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0 leading-tight">
+          <div className="truncate max-[600px]:text-[11px]">{move.name.english}</div>
+          <div className="text-[10px] font-normal opacity-75">
+            {move.power === "—" ? "" : `${move.power}p,`} {move.accuracy}
+          </div>
+          <div className="mt-0.5 flex items-center gap-1 text-[10px] font-normal">
+            <a
+              href={bulbapediaMoveUrl(move.name.english)}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Bulba"
+              onClick={(event) => event.stopPropagation()}
+              className="rounded border border-gray-300 px-1 py-0.5 font-bold text-black"
+            >
+              Bulba
+            </a>
+            {defenderTypes && !isStatus && (
+              <EffectivenessIndicator moveType={move.type} defenderTypes={defenderTypes} />
+            )}
+          </div>
         </div>
-        <div className="mt-0.5 flex items-center gap-1 text-[10px] font-normal">
-          <a
-            href={bulbapediaMoveUrl(move.name.english)}
-            target="_blank"
-            rel="noopener noreferrer"
-            title="Bulba"
-            onClick={(event) => event.stopPropagation()}
-            className="rounded border border-gray-300 px-1 py-0.5 font-bold text-black"
-          >
-            Bulba
-          </a>
-          {defenderTypes && !isStatus && (
-            <EffectivenessIndicator moveType={move.type} defenderTypes={defenderTypes} />
-          )}
-        </div>
-      </div>
-      <div className="flex shrink-0 flex-col items-end text-[10px] leading-snug font-normal opacity-75">
-        <div>{move.pp} PP</div>
-        <div>{move.category}</div>
-        <div className="mt-1 flex items-center gap-0.5">
-          {isStab && (
-            <span title="STAB: matches this Pokemon's type" aria-label="STAB move">
-              ⭐
+        <div className="flex shrink-0 flex-col items-end text-[10px] leading-snug font-normal opacity-75">
+          <div>{move.pp} PP</div>
+          <div>{move.category}</div>
+          <div className="mt-1 flex items-center gap-0.5">
+            {isStab && (
+              <span title="STAB: matches this Pokemon's type" aria-label="STAB move">
+                ⭐
+              </span>
+            )}
+            <span
+              className={`rounded px-1 py-0.5 text-[8px] font-bold text-white ${TYPE_COLORS[move.type] ?? "bg-slate-400"}`}
+            >
+              {move.type.toUpperCase()}
             </span>
-          )}
-          <span
-            className={`rounded px-1 py-0.5 text-[8px] font-bold text-white ${TYPE_COLORS[move.type] ?? "bg-slate-400"}`}
-          >
-            {move.type.toUpperCase()}
-          </span>
+          </div>
         </div>
       </div>
+      {description && (
+        <div className="w-full truncate text-[10px] font-normal opacity-75" title={description}>
+          {description}
+        </div>
+      )}
     </div>
   );
 }
