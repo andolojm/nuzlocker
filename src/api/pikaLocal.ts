@@ -12,6 +12,7 @@ import movesData from "../vendor/pokemon-data/moves.json";
 import itemsData from "../vendor/pokemon-data/items.json";
 import typesData from "../vendor/pokemon-data/types.json";
 import abilitiesData from "../vendor/pokemon-data/abilities.json";
+import { isMoveHidden } from "./moveVisibility";
 import type {
   Ability,
   Item,
@@ -154,8 +155,11 @@ export class PikaLocal {
     return moves;
   }
 
+  /** Never returns a move locally curated as hidden (see moveVisibility.ts) — falls back to the
+   * full pool only if every move were somehow hidden, so callers never get stuck without a move. */
   static async getRandomMove(): Promise<Move> {
-    return pickRandom(moves);
+    const pool = moves.filter((move) => !isMoveHidden(move));
+    return pickRandom(pool.length > 0 ? pool : moves);
   }
 
   static async getMove(nameOrId: NameOrId): Promise<Move> {

@@ -1,3 +1,4 @@
+import { getHiddenMoveIds, setHiddenMoveIds } from "./moveVisibility";
 import { PikaLocal, PikaLocalNotFoundError } from "./pikaLocal";
 
 describe("PikaLocal", () => {
@@ -99,6 +100,19 @@ describe("PikaLocal", () => {
 
       expect(typeof move.name.english).toBe("string");
       expect(typeof move.type).toBe("string");
+    });
+
+    it("getRandomMove never returns a move hidden via moveVisibility", async () => {
+      const previouslyHidden = getHiddenMoveIds();
+      setHiddenMoveIds(["1"]); // Pound
+      try {
+        for (let i = 0; i < 30; i++) {
+          const move = await PikaLocal.getRandomMove();
+          expect(move.id).not.toBe("1");
+        }
+      } finally {
+        setHiddenMoveIds(previouslyHidden);
+      }
     });
 
     it("getMove looks up by id", async () => {

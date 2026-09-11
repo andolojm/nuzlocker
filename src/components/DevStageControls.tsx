@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { gameStateEngine } from "../engine/gameStateEngine";
 import { injectTestTeam } from "../engine/injectTestTeam";
+import { MoveVisibilityEditor } from "./MoveVisibilityEditor";
 
 export interface DevStageControlsProps {
   /** Called after the game state is replaced out from under React (inject/import/reset), so the caller can force the stage to remount. */
@@ -9,6 +10,7 @@ export interface DevStageControlsProps {
 
 export function DevStageControls({ onReset }: DevStageControlsProps) {
   const [injecting, setInjecting] = useState(false);
+  const [showMoveEditor, setShowMoveEditor] = useState(false);
   const [status, _setStatus] = useState<string | null>(null);
   const timer = useRef<number>(null);
   const setStatus = (status?: string) => {
@@ -94,6 +96,13 @@ export function DevStageControls({ onReset }: DevStageControlsProps) {
       >
         {injecting ? "INJECTING…" : "INJECT TEST TEAM"}
       </button>
+      <button
+        type="button"
+        onClick={() => setShowMoveEditor(true)}
+        className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+      >
+        HIDDEN MOVES
+      </button>
       <div className="flex gap-3">
         <button
           type="button"
@@ -118,6 +127,7 @@ export function DevStageControls({ onReset }: DevStageControlsProps) {
         </button>
       </div>
       {status && <p className="text-xs text-slate-500">{status}</p>}
+      {showMoveEditor && <MoveVisibilityEditor onClose={() => setShowMoveEditor(false)} />}
     </div>
   );
 }
