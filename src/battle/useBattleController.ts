@@ -70,6 +70,8 @@ export interface UseBattleControllerResult {
   /** Display names of moves the active opponent Pokemon has been seen using so far this battle. */
   opponentRevealedMoves: string[];
   playerParty: PartySlot[];
+  /** Whether each Pokemon in the opponent's party (in team order) has fainted. */
+  opponentPartyFainted: boolean[];
   turnEvents: string[];
   /** Every turn's recap so far, each prefixed with a `Turn N: <player> (lvX) \ <opponent> (lvY)` header line. */
   battleLog: string[];
@@ -510,6 +512,7 @@ export function useBattleController(
     opponentStatus: snapshot.opponentStatus[snapshot.opponentActiveIndex] ?? null,
     opponentRevealedMoves: snapshot.opponentRevealedMoves[snapshot.opponentActiveIndex] ?? [],
     playerParty: buildPlayerParty(),
+    opponentPartyFainted: snapshot.opponentHp.map((hp) => hp.current <= 0),
     turnEvents,
     battleLog,
     submitMove,

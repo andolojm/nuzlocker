@@ -4,6 +4,7 @@ import type { StatusCode } from "../../battle/formatBattleLine";
 import type { BattlePhase, HpValue } from "../../battle/useBattleController";
 import type { OwnedTM, TeamPokemon } from "../../engine/gameStateEngine";
 import { StageType } from "../../engine/stage";
+import { BallIcon } from "./BallIcon";
 import { BattleMenu } from "./BattleMenu";
 import type { BattleAction } from "./BattleMenu";
 import { MoveSelectMenu } from "./MoveSelectMenu";
@@ -23,6 +24,8 @@ export interface BattleScreenProps {
   opponentStatus: StatusCode | null;
   /** Display names of moves the opponent has been seen using so far — shown in its info modal. */
   opponentRevealedMoves: string[];
+  /** Whether each Pokemon in the opponent's party (in team order) has fainted. */
+  opponentPartyFainted: boolean[];
   playerParty: PartySlot[];
   stageType: StageType;
   /** Ball multiplier for the active Catch stage; ignored for Battle stages. */
@@ -49,6 +52,7 @@ export function BattleScreen({
   playerStatus,
   opponentStatus,
   opponentRevealedMoves,
+  opponentPartyFainted,
   playerParty,
   stageType,
   ballBonus,
@@ -93,6 +97,15 @@ export function BattleScreen({
     <div className="relative overflow-hidden rounded-xl border-4 border-slate-800 shadow-xl max-[750px]:-mx-6">
       <div className="relative h-110 bg-transparent">
         <div className="absolute top-4 left-4">
+          <div className="mb-1 flex gap-0.5">
+            {opponentPartyFainted.map((fainted, index) => (
+              <BallIcon
+                key={index}
+                ballBonus={1}
+                className={`h-4 w-4 ${fainted ? "opacity-40 grayscale" : ""}`}
+              />
+            ))}
+          </div>
           <PokemonInfoBox
             pokemon={opponentPokemon}
             hp={opponentHp}

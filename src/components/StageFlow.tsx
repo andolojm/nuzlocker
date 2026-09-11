@@ -180,6 +180,7 @@ function Battle({ player, opponent, stageType, ballBonus, resume }: BattleProps)
         playerStatus={controller.playerStatus}
         opponentStatus={controller.opponentStatus}
         opponentRevealedMoves={controller.opponentRevealedMoves}
+        opponentPartyFainted={controller.opponentPartyFainted}
         playerParty={controller.playerParty}
         stageType={stageType}
         ballBonus={ballBonus}
