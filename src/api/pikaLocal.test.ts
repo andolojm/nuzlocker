@@ -96,7 +96,7 @@ describe("PikaLocal", () => {
     });
 
     it("getRandomMove returns a single move", async () => {
-      const move = await PikaLocal.getRandomMove();
+      const move = await PikaLocal.getRandomMove(50);
 
       expect(typeof move.name.english).toBe("string");
       expect(typeof move.type).toBe("string");
@@ -107,9 +107,32 @@ describe("PikaLocal", () => {
       setHiddenMoveIds(["1"]); // Pound
       try {
         for (let i = 0; i < 30; i++) {
-          const move = await PikaLocal.getRandomMove();
+          const move = await PikaLocal.getRandomMove(50);
           expect(move.id).not.toBe("1");
         }
+      } finally {
+        setHiddenMoveIds(previouslyHidden);
+      }
+    });
+
+    it("getRandomMove caps power at 40 for a level 1 Pokemon", async () => {
+      for (let i = 0; i < 30; i++) {
+        const move = await PikaLocal.getRandomMove(1);
+        const power = parseFloat(move.power);
+        if (Number.isFinite(power)) expect(power).toBeLessThanOrEqual(40);
+      }
+    });
+
+    it("getRandomMove allows Explosion/Self-Destruct/Misty Explosion regardless of level", async () => {
+      const previouslyHidden = getHiddenMoveIds();
+      // Only the three exempt moves are eligible at level 1 with everything else hidden.
+      const exempt = ["Self-Destruct", "Explosion", "Misty Explosion"];
+      const allMoves = await PikaLocal.getAllMoves();
+      const toHide = allMoves.filter((move) => !exempt.includes(move.name.english)).map((move) => move.id);
+      setHiddenMoveIds(toHide);
+      try {
+        const move = await PikaLocal.getRandomMove(1);
+        expect(exempt).toContain(move.name.english);
       } finally {
         setHiddenMoveIds(previouslyHidden);
       }

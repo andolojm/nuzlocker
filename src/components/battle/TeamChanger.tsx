@@ -113,7 +113,7 @@ export function TeamChanger({ alivePokemon, levelCap, onSubmit, submitLabel }: T
     replaceInLocalState(pokemon, leveled);
 
     if (willLearnMove) {
-      const learned = await rollLearnableMove(leveled.moves);
+      const learned = await rollLearnableMove(leveled.moves, leveled.level);
       setLevelUpInfo({ pokemon: leveled, fromName, moveChoice: { current: leveled.moves, learned } });
     } else {
       setLevelUpInfo({ pokemon: leveled, fromName });

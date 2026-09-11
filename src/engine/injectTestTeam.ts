@@ -10,10 +10,10 @@ export const TEST_TEAM_ACTIVE_SIZE = 6;
 async function buildRandomTeamPokemon(): Promise<TeamPokemon> {
   const [pokemon, move1, move2, move3, move4, ability] = await Promise.all([
     PikaLocal.getRandomPokemon(),
-    PikaLocal.getRandomMove(),
-    PikaLocal.getRandomMove(),
-    PikaLocal.getRandomMove(),
-    PikaLocal.getRandomMove(),
+    PikaLocal.getRandomMove(TEST_TEAM_LEVEL),
+    PikaLocal.getRandomMove(TEST_TEAM_LEVEL),
+    PikaLocal.getRandomMove(TEST_TEAM_LEVEL),
+    PikaLocal.getRandomMove(TEST_TEAM_LEVEL),
     PikaLocal.getRandomAbility(),
   ]);
 

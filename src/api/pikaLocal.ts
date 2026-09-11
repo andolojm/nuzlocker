@@ -12,6 +12,7 @@ import movesData from "../vendor/pokemon-data/moves.json";
 import itemsData from "../vendor/pokemon-data/items.json";
 import typesData from "../vendor/pokemon-data/types.json";
 import abilitiesData from "../vendor/pokemon-data/abilities.json";
+import { isMoveAllowedAtLevel } from "./movePowerCap";
 import { isMoveHidden } from "./moveVisibility";
 import type {
   Ability,
@@ -155,10 +156,14 @@ export class PikaLocal {
     return moves;
   }
 
-  /** Never returns a move locally curated as hidden (see moveVisibility.ts) — falls back to the
-   * full pool only if every move were somehow hidden, so callers never get stuck without a move. */
-  static async getRandomMove(): Promise<Move> {
-    const pool = moves.filter((move) => !isMoveHidden(move));
+  /**
+   * Never returns a move locally curated as hidden (see moveVisibility.ts), nor one whose power
+   * exceeds `level`'s cap (see movePowerCap.ts) — equivalent to rerolling on a too-strong pull,
+   * but as a pool filter so it can't spin forever if the eligible set is small. Falls back to the
+   * unfiltered pool only if that leaves nothing at all, so callers never get stuck without a move.
+   */
+  static async getRandomMove(level: number): Promise<Move> {
+    const pool = moves.filter((move) => !isMoveHidden(move) && isMoveAllowedAtLevel(move, level));
     return pickRandom(pool.length > 0 ? pool : moves);
   }
 

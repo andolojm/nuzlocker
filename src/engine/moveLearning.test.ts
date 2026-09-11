@@ -36,7 +36,7 @@ describe("rollLearnableMove", () => {
   it("returns the rolled move when it isn't already known", async () => {
     jest.spyOn(PikaLocal, "getRandomMove").mockResolvedValue(buildMove("2", "Growl"));
 
-    const result = await rollLearnableMove([buildMove("1", "Tackle")]);
+    const result = await rollLearnableMove([buildMove("1", "Tackle")], 20);
 
     expect(result).toEqual(buildMove("2", "Growl"));
   });
@@ -48,7 +48,7 @@ describe("rollLearnableMove", () => {
       .mockResolvedValueOnce(buildMove("1", "Tackle"))
       .mockResolvedValueOnce(buildMove("2", "Growl"));
 
-    const result = await rollLearnableMove([buildMove("1", "Tackle")]);
+    const result = await rollLearnableMove([buildMove("1", "Tackle")], 20);
 
     expect(result).toEqual(buildMove("2", "Growl"));
     expect(spy).toHaveBeenCalledTimes(3);

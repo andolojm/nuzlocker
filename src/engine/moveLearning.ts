@@ -13,13 +13,14 @@ export function nextMoveLearnLevel(currentLevel: number): number | undefined {
   return LEVEL_UP_MOVE_LEVELS.find((level) => level > currentLevel);
 }
 
-/** Rolls a random move via PikaLocal, re-rolling if it duplicates one the Pokemon already knows. */
-export async function rollLearnableMove(knownMoves: readonly Move[]): Promise<Move> {
+/** Rolls a random move via PikaLocal (capped to `level`'s max power), re-rolling if it duplicates
+ * one the Pokemon already knows. */
+export async function rollLearnableMove(knownMoves: readonly Move[], level: number): Promise<Move> {
   const knownIds = new Set(knownMoves.map((move) => move.id));
 
   let move: Move;
   do {
-    move = await PikaLocal.getRandomMove();
+    move = await PikaLocal.getRandomMove(level);
   } while (knownIds.has(move.id));
 
   return move;
