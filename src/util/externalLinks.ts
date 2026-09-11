@@ -20,3 +20,7 @@ export function bulbapediaMoveUrl(name: string): string {
 export function bulbapediaPokemonUrl(name: string): string {
   return `https://bulbapedia.bulbagarden.net/wiki/${name.replace(/ /g, "_")}_(Pokémon)`;
 }
+
+export function bulbapediaAbilityUrl(name: string): string {
+  return `https://bulbapedia.bulbagarden.net/wiki/${name.replace(/ /g, "_")}_(Ability)`;
+}
