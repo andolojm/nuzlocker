@@ -115,6 +115,29 @@ describe("PikaLocal", () => {
       }
     });
 
+    it("getRandomMove rolls Status/Physical/Special at 36%/32%/32%", async () => {
+      // Deterministic PRNG (mulberry32) so the sample is reproducible instead of flaky.
+      let state = 42;
+      const random = () => {
+        state = (state + 0x6d2b79f5) | 0;
+        let t = state;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+
+      const sampleSize = 5000;
+      const counts: Record<string, number> = { Status: 0, Physical: 0, Special: 0 };
+      for (let i = 0; i < sampleSize; i++) {
+        const move = await PikaLocal.getRandomMove(50, random);
+        counts[move.category] = (counts[move.category] ?? 0) + 1;
+      }
+
+      expect(counts.Status / sampleSize).toBeCloseTo(0.36, 1);
+      expect(counts.Physical / sampleSize).toBeCloseTo(0.32, 1);
+      expect(counts.Special / sampleSize).toBeCloseTo(0.32, 1);
+    });
+
     it("getRandomMove caps power at 40 for a level 1 Pokemon", async () => {
       // Self-Destruct/Explosion/Misty Explosion are deliberately exempt from the cap (see movePowerCap.ts).
       const exempt = ["Self-Destruct", "Explosion", "Misty Explosion"];

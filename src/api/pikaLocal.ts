@@ -124,8 +124,25 @@ function findByIdOrName<T>(
   throw new PikaLocalNotFoundError(kind, nameOrId);
 }
 
-function pickRandom<T>(list: T[]): T {
-  return list[Math.floor(Math.random() * list.length)];
+function pickRandom<T>(list: T[], random: () => number = Math.random): T {
+  return list[Math.floor(random() * list.length)];
+}
+
+/** getRandomMove's category odds: Status 36%, Physical/Special 32% each — moves.json has no
+ * fourth category, so these three are exhaustive. */
+const MOVE_CATEGORY_WEIGHTS: Record<string, number> = { Status: 0.36, Physical: 0.32, Special: 0.32 };
+
+/** Rolls a category by MOVE_CATEGORY_WEIGHTS, redistributing weight away from any category with no
+ * eligible moves so the roll never lands on an empty pool. */
+function pickMoveCategory(pools: Record<string, Move[]>, random: () => number): string {
+  const available = Object.entries(MOVE_CATEGORY_WEIGHTS).filter(([category]) => pools[category].length > 0);
+  const totalWeight = available.reduce((sum, [, weight]) => sum + weight, 0);
+  let roll = random() * totalWeight;
+  for (const [category, weight] of available) {
+    if (roll < weight) return category;
+    roll -= weight;
+  }
+  return available[available.length - 1][0];
 }
 
 /**
@@ -157,14 +174,24 @@ export class PikaLocal {
   }
 
   /**
-   * Never returns a move locally curated as hidden (see moveVisibility.ts), nor one whose power
-   * exceeds `level`'s cap (see movePowerCap.ts) — equivalent to rerolling on a too-strong pull,
-   * but as a pool filter so it can't spin forever if the eligible set is small. Falls back to the
-   * unfiltered pool only if that leaves nothing at all, so callers never get stuck without a move.
+   * Rolls a category first (Status 36%, Physical/Special 32% each, see MOVE_CATEGORY_WEIGHTS) and
+   * then a uniformly random move within it, so the category split holds regardless of how lopsided
+   * the underlying data is. Each category's pool excludes moves locally curated as hidden (see
+   * moveVisibility.ts) and any whose power exceeds `level`'s cap (see movePowerCap.ts) — equivalent
+   * to rerolling on a too-strong pull, but as a pool filter so it can't spin forever if the eligible
+   * set is small. Falls back to the fully unfiltered pool only if every category is empty, so
+   * callers never get stuck without a move.
    */
-  static async getRandomMove(level: number): Promise<Move> {
-    const pool = moves.filter((move) => !isMoveHidden(move) && isMoveAllowedAtLevel(move, level));
-    return pickRandom(pool.length > 0 ? pool : moves);
+  static async getRandomMove(level: number, random: () => number = Math.random): Promise<Move> {
+    const eligible = moves.filter((move) => !isMoveHidden(move) && isMoveAllowedAtLevel(move, level));
+    const pools: Record<string, Move[]> = { Status: [], Physical: [], Special: [] };
+    for (const move of eligible) {
+      pools[move.category]?.push(move);
+    }
+    if (eligible.length === 0) return pickRandom(moves, random);
+
+    const category = pickMoveCategory(pools, random);
+    return pickRandom(pools[category], random);
   }
 
   static async getMove(nameOrId: NameOrId): Promise<Move> {
