@@ -97,15 +97,17 @@ export function BattleScreen({
     <div className="relative overflow-hidden rounded-xl border-4 border-slate-800 shadow-xl max-[750px]:-mx-6">
       <div className="relative h-110 bg-transparent">
         <div className="absolute top-4 left-4">
-          <div className="mb-1 flex gap-0.5">
-            {opponentPartyFainted.map((fainted, index) => (
-              <BallIcon
-                key={index}
-                ballBonus={1}
-                className={`h-4 w-4 ${fainted ? "opacity-40 grayscale" : ""}`}
-              />
-            ))}
-          </div>
+          {stageType === StageType.Battle && (
+            <div className="mb-1 flex gap-0.5">
+              {opponentPartyFainted.map((fainted, index) => (
+                <BallIcon
+                  key={index}
+                  ballBonus={1}
+                  className={`h-4 w-4 ${fainted ? "opacity-40 grayscale" : ""}`}
+                />
+              ))}
+            </div>
+          )}
           <PokemonInfoBox
             pokemon={opponentPokemon}
             hp={opponentHp}
