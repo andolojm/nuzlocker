@@ -23,7 +23,7 @@ const STATUS_CURED: Record<StatusCode, string> = {
   tox: "poison was cured.",
 };
 
-const STAT_NAMES: Record<string, string> = {
+export const STAT_NAMES: Record<string, string> = {
   atk: "Attack",
   def: "Defense",
   spa: "Special Attack",

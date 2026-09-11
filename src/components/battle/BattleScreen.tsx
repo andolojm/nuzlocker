@@ -1,11 +1,12 @@
 import { useState } from "react";
 import type { Move } from "../../api/pikaserve";
 import type { StatusCode } from "../../battle/formatBattleLine";
-import type { BattlePhase, HpValue } from "../../battle/useBattleController";
+import type { BattlePhase, Boosts, HpValue } from "../../battle/useBattleController";
 import type { OwnedTM, TeamPokemon } from "../../engine/gameStateEngine";
 import { StageType } from "../../engine/stage";
 import { BallIcon } from "./BallIcon";
 import { BattleMenu } from "./BattleMenu";
+import { BoostList } from "./BoostList";
 import type { BattleAction } from "./BattleMenu";
 import { MoveSelectMenu } from "./MoveSelectMenu";
 import { OutcomeModal } from "./OutcomeModal";
@@ -26,6 +27,8 @@ export interface BattleScreenProps {
   opponentRevealedMoves: string[];
   /** Whether each Pokemon in the opponent's party (in team order) has fainted. */
   opponentPartyFainted: boolean[];
+  playerBoosts: Boosts;
+  opponentBoosts: Boosts;
   playerParty: PartySlot[];
   stageType: StageType;
   /** Ball multiplier for the active Catch stage; ignored for Battle stages. */
@@ -53,6 +56,8 @@ export function BattleScreen({
   opponentStatus,
   opponentRevealedMoves,
   opponentPartyFainted,
+  playerBoosts,
+  opponentBoosts,
   playerParty,
   stageType,
   ballBonus,
@@ -115,6 +120,7 @@ export function BattleScreen({
             statusChipPosition="bottom-right"
             onInfoClick={() => setShowOpponentInfo(true)}
           />
+          <BoostList boosts={opponentBoosts} />
         </div>
         <img
           src={opponentPokemon.image.hires}
@@ -135,6 +141,7 @@ export function BattleScreen({
             statusChipPosition="top-left"
             onInfoClick={() => setShowPlayerInfo(true)}
           />
+          <BoostList boosts={playerBoosts} />
         </div>
       </div>
 

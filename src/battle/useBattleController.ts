@@ -32,6 +32,15 @@ function resolveAndRecord(resolve: (choice: string) => void, choice: string): vo
 
 export type BattlePhase = "battle" | "results" | "forced-switch" | "victory" | "defeat" | "caught" | "ran";
 
+/** Stat stage (-6..6) by short stat key (atk, def, spa, spd, spe, accuracy, evasion). Omitted/zero stats are unboosted. */
+export type Boosts = Record<string, number>;
+
+const BOOST_STATS = ["atk", "def", "spa", "spd", "spe", "accuracy", "evasion"];
+
+function clampBoost(value: number): number {
+  return Math.max(-6, Math.min(6, value));
+}
+
 /** Flavor text for a failed catch attempt, indexed by CatchAttemptResult.shakes (0-3). */
 const CATCH_FAIL_MESSAGES = [
   "Oh no! The wild Pokémon broke free!",
@@ -69,6 +78,9 @@ export interface UseBattleControllerResult {
   opponentStatus: StatusCode | null;
   /** Display names of moves the active opponent Pokemon has been seen using so far this battle. */
   opponentRevealedMoves: string[];
+  /** Stat stage changes on the active player/opponent Pokemon, keyed by short stat name. */
+  playerBoosts: Boosts;
+  opponentBoosts: Boosts;
   playerParty: PartySlot[];
   /** Whether each Pokemon in the opponent's party (in team order) has fainted. */
   opponentPartyFainted: boolean[];
@@ -96,6 +108,8 @@ interface Snapshot {
   opponentStatus: (StatusCode | null)[];
   /** Display names of moves the opponent's active Pokemon have been seen using, in first-seen order. */
   opponentRevealedMoves: string[][];
+  playerBoosts: Boosts[];
+  opponentBoosts: Boosts[];
 }
 
 function fullHp(pokemon: TeamPokemon): HpValue {
@@ -136,6 +150,8 @@ export function useBattleController(
   const opponentStatusRef = useRef<(StatusCode | null)[]>(opponent.team.map(() => null));
   const deadReportedRef = useRef(new Set<number>());
   const opponentRevealedMovesRef = useRef<string[][]>(opponent.team.map(() => []));
+  const playerBoostsRef = useRef<Boosts[]>(player.team.map(() => ({})));
+  const opponentBoostsRef = useRef<Boosts[]>(opponent.team.map(() => ({})));
   const logBufferRef = useRef<string[]>([]);
   const turnNumberRef = useRef(1);
   /** Which Pokemon were active at the *start* of the turn currently being buffered, for the next battle log header. */
@@ -160,6 +176,8 @@ export function useBattleController(
     playerStatus: playerStatusRef.current,
     opponentStatus: opponentStatusRef.current,
     opponentRevealedMoves: opponentRevealedMovesRef.current,
+    playerBoosts: playerBoostsRef.current,
+    opponentBoosts: opponentBoostsRef.current,
   }));
 
   const takeSnapshot = useCallback(
@@ -171,6 +189,8 @@ export function useBattleController(
       playerStatus: [...playerStatusRef.current],
       opponentStatus: [...opponentStatusRef.current],
       opponentRevealedMoves: opponentRevealedMovesRef.current.map((moves) => [...moves]),
+      playerBoosts: playerBoostsRef.current.map((boosts) => ({ ...boosts })),
+      opponentBoosts: opponentBoostsRef.current.map((boosts) => ({ ...boosts })),
     }),
     [],
   );
@@ -199,6 +219,16 @@ export function useBattleController(
       });
     }
 
+    /** Resolves a Showdown ident (e.g. "p2a: Squirtle") to its side and team-array index, matching
+     * on battleNickname for the same reason applyLogLine's switch/drag handling does. */
+    function resolveIdent(ident: string): { isPlayer: boolean; index: number } | null {
+      const isPlayer = ident.startsWith("p1");
+      const team = isPlayer ? player.team : opponent.team;
+      const nickname = rawIdentName(ident);
+      const index = team.findIndex((_, i) => battleNickname(team, i) === nickname);
+      return index === -1 ? null : { isPlayer, index };
+    }
+
     // Reflects the current active Pokemon/HP off the omniscient log, and buffers the raw line
     // for translation into display text at the next decision point. Matches on battleNickname
     // rather than species name, since a padded Catch-stage team can have multiple same-species
@@ -219,14 +249,18 @@ export function useBattleController(
         const hpField = parts[4] ?? "";
         const hp = parseHpField(hpField, team[index].base.HP);
         const status = parseStatusField(hpField);
+        // A newly-active Pokemon always enters with no stat stages, Baton Pass being the one
+        // exception — it reports its own explicit -copyboost line right after this switch.
         if (isPlayer) {
           playerActiveIndexRef.current = index;
           playerHpRef.current[index] = hp;
           playerStatusRef.current[index] = status;
+          playerBoostsRef.current[index] = {};
         } else {
           opponentActiveIndexRef.current = index;
           opponentHpRef.current[index] = hp;
           opponentStatusRef.current[index] = status;
+          opponentBoostsRef.current[index] = {};
         }
         return;
       }
@@ -247,6 +281,72 @@ export function useBattleController(
         const index = isPlayer ? playerActiveIndexRef.current : opponentActiveIndexRef.current;
         const status = type === "-status" ? ((parts[3] as StatusCode) ?? null) : null;
         (isPlayer ? playerStatusRef : opponentStatusRef).current[index] = status;
+        return;
+      }
+
+      if (type === "-boost" || type === "-unboost" || type === "-setboost") {
+        const resolved = resolveIdent(parts[2]);
+        if (!resolved) return;
+        const stat = parts[3];
+        const amount = Number(parts[4]) || 0;
+        const boosts = (resolved.isPlayer ? playerBoostsRef : opponentBoostsRef).current[resolved.index];
+        if (type === "-setboost") {
+          boosts[stat] = clampBoost(amount);
+        } else {
+          const delta = type === "-boost" ? amount : -amount;
+          boosts[stat] = clampBoost((boosts[stat] ?? 0) + delta);
+        }
+        return;
+      }
+
+      if (type === "-swapboost" || type === "-copyboost") {
+        const source = resolveIdent(parts[2]);
+        const target = resolveIdent(parts[3]);
+        if (!source || !target) return;
+        const stats = parts[4] ? parts[4].split(",") : BOOST_STATS;
+        const sourceBoosts = (source.isPlayer ? playerBoostsRef : opponentBoostsRef).current[source.index];
+        const targetBoosts = (target.isPlayer ? playerBoostsRef : opponentBoostsRef).current[target.index];
+        for (const stat of stats) {
+          const sourceValue = sourceBoosts[stat] ?? 0;
+          if (type === "-copyboost") {
+            targetBoosts[stat] = sourceValue;
+          } else {
+            targetBoosts[stat] = targetBoosts[stat] ?? 0;
+            [sourceBoosts[stat], targetBoosts[stat]] = [targetBoosts[stat], sourceValue];
+          }
+        }
+        return;
+      }
+
+      if (type === "-invertboost") {
+        const resolved = resolveIdent(parts[2]);
+        if (!resolved) return;
+        const boosts = (resolved.isPlayer ? playerBoostsRef : opponentBoostsRef).current[resolved.index];
+        for (const stat of Object.keys(boosts)) boosts[stat] = -boosts[stat];
+        return;
+      }
+
+      if (type === "-clearboost") {
+        const resolved = resolveIdent(parts[2]);
+        if (!resolved) return;
+        (resolved.isPlayer ? playerBoostsRef : opponentBoostsRef).current[resolved.index] = {};
+        return;
+      }
+
+      if (type === "-clearpositiveboost" || type === "-clearnegativeboost") {
+        const resolved = resolveIdent(parts[2]);
+        if (!resolved) return;
+        const boosts = (resolved.isPlayer ? playerBoostsRef : opponentBoostsRef).current[resolved.index];
+        const clearPositive = type === "-clearpositiveboost";
+        for (const stat of Object.keys(boosts)) {
+          if (clearPositive ? boosts[stat] > 0 : boosts[stat] < 0) delete boosts[stat];
+        }
+        return;
+      }
+
+      if (type === "-clearallboost") {
+        playerBoostsRef.current[playerActiveIndexRef.current] = {};
+        opponentBoostsRef.current[opponentActiveIndexRef.current] = {};
         return;
       }
 
@@ -511,6 +611,8 @@ export function useBattleController(
     playerStatus: snapshot.playerStatus[snapshot.playerActiveIndex] ?? null,
     opponentStatus: snapshot.opponentStatus[snapshot.opponentActiveIndex] ?? null,
     opponentRevealedMoves: snapshot.opponentRevealedMoves[snapshot.opponentActiveIndex] ?? [],
+    playerBoosts: snapshot.playerBoosts[snapshot.playerActiveIndex] ?? {},
+    opponentBoosts: snapshot.opponentBoosts[snapshot.opponentActiveIndex] ?? {},
     playerParty: buildPlayerParty(),
     opponentPartyFainted: snapshot.opponentHp.map((hp) => hp.current <= 0),
     turnEvents,
