@@ -24,6 +24,8 @@ export interface PokemonInfoBoxProps {
   statusChipPosition?: "top-left" | "bottom-right";
   /** Renders an "INFO" link that opens the PokemonInfoModal. Omit to hide it. */
   onInfoClick?: () => void;
+  /** "player" shows exact HP ("42/60"); "opponent" shows a rounded percentage instead. Defaults to "player". */
+  variant?: "player" | "opponent";
 }
 
 const STATUS_LABELS: Record<StatusCode, string> = {
@@ -74,6 +76,7 @@ export function PokemonInfoBox({
   status,
   statusChipPosition = "bottom-right",
   onInfoClick,
+  variant = "player",
 }: PokemonInfoBoxProps) {
   const borderClass = status ? STATUS_BORDER_COLORS[status] : "border-slate-700";
 
@@ -88,7 +91,7 @@ export function PokemonInfoBox({
         <span className="text-xs font-semibold text-slate-700 min-[600px]:text-sm">Lv{pokemon.level}</span>
       </div>
       <div className="mt-1.5">
-        <HpBar current={hp.current} max={hp.max} />
+        <HpBar current={hp.current} max={hp.max} display={variant === "player" ? "numeric" : "percentage"} />
       </div>
       <div className="mt-1 flex gap-1">
         {pokemon.type.map((type) => (

@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { Move } from "../../api/pikaserve";
 import type { StatusCode } from "../../battle/formatBattleLine";
 import type { BattlePhase, Boosts, HpValue } from "../../battle/useBattleController";
+import { catchProbability, statusCatchBonus } from "../../encounter/catchPokemon";
 import type { OwnedTM, TeamPokemon } from "../../engine/gameStateEngine";
 import { StageType } from "../../engine/stage";
 import { BallIcon } from "./BallIcon";
@@ -75,6 +76,14 @@ export function BattleScreen({
   const [showOpponentInfo, setShowOpponentInfo] = useState(false);
   const disabledActions = stageType === StageType.Battle ? BATTLE_DISABLED_ACTIONS : [];
   const isOutcomePhase = phase === "victory" || phase === "defeat" || phase === "caught" || phase === "ran";
+  const catchChance =
+    stageType === StageType.Catch
+      ? catchProbability(opponentPokemon, {
+          ballBonus,
+          statusBonus: statusCatchBonus(opponentStatus),
+          currentHpFraction: opponentHp.current / opponentHp.max,
+        })
+      : undefined;
 
   function handleMainMenuSelect(action: BattleAction, openedViaKeyboard: boolean) {
     if (action === "FIGHT") {
@@ -119,6 +128,7 @@ export function BattleScreen({
             status={opponentStatus}
             statusChipPosition="bottom-right"
             onInfoClick={() => setShowOpponentInfo(true)}
+            variant="opponent"
           />
           <BoostList boosts={opponentBoosts} />
         </div>
@@ -140,6 +150,7 @@ export function BattleScreen({
             status={playerStatus}
             statusChipPosition="top-left"
             onInfoClick={() => setShowPlayerInfo(true)}
+            variant="player"
           />
           <BoostList boosts={playerBoosts} />
         </div>
@@ -156,6 +167,7 @@ export function BattleScreen({
               disabledActions={disabledActions}
               active
               ballBonus={stageType === StageType.Catch ? ballBonus : undefined}
+              catchProbability={catchChance}
               onSelect={handleMainMenuSelect}
             />
           </div>
@@ -185,6 +197,7 @@ export function BattleScreen({
                 disabledActions={disabledActions}
                 active={false}
                 ballBonus={stageType === StageType.Catch ? ballBonus : undefined}
+              catchProbability={catchChance}
                 onSelect={handleMainMenuSelect}
               />
             </div>

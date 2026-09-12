@@ -30,7 +30,15 @@ function resolveAndRecord(resolve: (choice: string) => void, choice: string): vo
   resolve(choice);
 }
 
-export type BattlePhase = "battle" | "results" | "forced-switch" | "victory" | "defeat" | "caught" | "ran";
+export type BattlePhase =
+  | "battle"
+  | "results"
+  | "forced-switch"
+  | "victory"
+  | "defeat"
+  | "defeat-summary"
+  | "caught"
+  | "ran";
 
 /** Stat stage (-6..6) by short stat key (atk, def, spa, spd, spe, accuracy, evasion). Omitted/zero stats are unboosted. */
 export type Boosts = Record<string, number>;
@@ -588,7 +596,10 @@ export function useBattleController(
     }
 
     if (phase === "defeat") {
-      gameStateEngine.resetRun();
+      // Show the defeat recap (list of this run's fainted Pokemon) before resetting — resetRun()
+      // itself is deferred until the player explicitly confirms from that screen, since it clears
+      // gameState.pokemon.dead and this component tree unmounts the moment it runs.
+      setPhase("defeat-summary");
     }
   }, [phase]);
 

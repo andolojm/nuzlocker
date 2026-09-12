@@ -1,4 +1,5 @@
 import { PikaLocal } from "../api/pikaLocal";
+import type { Move } from "../api/pikaserve";
 import { resolveEvolution } from "../engine/evolution";
 import type { TeamPokemon } from "../engine/gameStateEngine";
 
@@ -27,14 +28,23 @@ export async function encounterPokemon(
     pokemon = await PikaLocal.getRandomPokemon(minBst, maxBst);
   } while (avoidDuplicates && caughtIds.has(pokemon.id));
 
-  const [move1, move2, move3, move4, ability] = await Promise.all([
-    PikaLocal.getRandomMove(level),
-    PikaLocal.getRandomMove(level),
-    PikaLocal.getRandomMove(level),
-    PikaLocal.getRandomMove(level),
-    PikaLocal.getRandomAbility(),
-  ]);
+  const [moves, ability] = await Promise.all([rollMoveset(level), PikaLocal.getRandomAbility()]);
   const evolution = await resolveEvolution(pokemon);
 
-  return { ...pokemon, level, moves: [move1, move2, move3, move4], ability: ability.name, ...evolution };
+  return { ...pokemon, level, moves, ability: ability.name, ...evolution };
+}
+
+/** Rolls 4 random moves, re-rolling the whole set if every one comes back Status (no damaging move). */
+async function rollMoveset(level: number): Promise<[Move, Move, Move, Move]> {
+  let moves: [Move, Move, Move, Move];
+  do {
+    moves = await Promise.all([
+      PikaLocal.getRandomMove(level),
+      PikaLocal.getRandomMove(level),
+      PikaLocal.getRandomMove(level),
+      PikaLocal.getRandomMove(level),
+    ]);
+  } while (moves.every((move) => move.category === "Status"));
+
+  return moves;
 }

@@ -1,5 +1,5 @@
 import type { Pokemon } from "../api/pikaserve";
-import { attemptCatch, statusCatchBonus } from "./catchPokemon";
+import { attemptCatch, catchProbability, statusCatchBonus } from "./catchPokemon";
 
 function buildPokemon(overrides: Partial<Pokemon> = {}): Pokemon {
   return {
@@ -107,6 +107,49 @@ describe("attemptCatch", () => {
 
     expect(justBelowThreshold).toEqual({ caught: true, shakes: 4 });
     expect(justAtThreshold).toEqual({ caught: false, shakes: 0 });
+  });
+});
+
+describe("catchProbability", () => {
+  it("is 1 when the modified catch rate reaches the certain-capture threshold", () => {
+    const pokemon = buildPokemon({ catchRate: 255 });
+
+    expect(catchProbability(pokemon, { currentHpFraction: 0.01, ballBonus: 2 })).toBe(1);
+  });
+
+  it("matches the shake threshold used by attemptCatch (regression guard)", () => {
+    // Same fixture as attemptCatch's "uses the Gen III+ shake formula" test:
+    // catchRate 120, full HP, neutral ball/status -> modifiedCatchRate 40 -> shake threshold 41942.
+    const pokemon = buildPokemon({ catchRate: 120 });
+
+    expect(catchProbability(pokemon)).toBeCloseTo((41942 / 65536) ** 4);
+  });
+
+  it("is higher for a weakened Pokemon than a healthy one", () => {
+    const pokemon = buildPokemon();
+
+    const atFullHealth = catchProbability(pokemon, { currentHpFraction: 1 });
+    const atLowHealth = catchProbability(pokemon, { currentHpFraction: 0.1 });
+
+    expect(atLowHealth).toBeGreaterThan(atFullHealth);
+  });
+
+  it("is higher with a ball bonus and/or a status bonus", () => {
+    const pokemon = buildPokemon();
+
+    const neutral = catchProbability(pokemon);
+    const withBonuses = catchProbability(pokemon, { ballBonus: 1.5, statusBonus: 1.5 });
+
+    expect(withBonuses).toBeGreaterThan(neutral);
+  });
+
+  it("stays within [0, 1]", () => {
+    const pokemon = buildPokemon({ catchRate: 3 });
+
+    const probability = catchProbability(pokemon, { currentHpFraction: 1 });
+
+    expect(probability).toBeGreaterThanOrEqual(0);
+    expect(probability).toBeLessThanOrEqual(1);
   });
 });
 

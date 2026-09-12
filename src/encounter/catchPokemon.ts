@@ -41,30 +41,51 @@ export function statusCatchBonus(status: StatusCode | null): number {
   return status ? STATUS_CATCH_BONUS[status] : 1;
 }
 
-export function attemptCatch(pokemon: Pokemon, options: CatchAttemptOptions = {}): CatchAttemptResult {
+/** Gen III+ modified catch rate: how favorable the current HP/ball/status conditions are (higher = easier). */
+function modifiedCatchRate(pokemon: Pokemon, options: CatchAttemptOptions): number {
   const ballBonus = options.ballBonus ?? 1;
   const statusBonus = options.statusBonus ?? 1;
   const currentHpFraction = options.currentHpFraction ?? 1;
-  const random = options.random ?? Math.random;
 
   const maxHp = pokemon.base.HP;
   const currentHp = maxHp * currentHpFraction;
 
-  const modifiedCatchRate = Math.floor(
+  return Math.floor(
     (Math.floor(3 * maxHp - 2 * currentHp) * pokemon.catchRate * ballBonus * statusBonus) / (3 * maxHp),
   );
+}
 
-  if (modifiedCatchRate >= CERTAIN_CAPTURE_THRESHOLD) {
+/** Gen III+ shake-success threshold: a roll below this (out of SHAKE_ROLL_MAX) passes one shake check. */
+function shakeThreshold(catchRate: number): number {
+  return Math.floor(SHAKE_THRESHOLD_NUMERATOR / Math.floor(Math.sqrt(Math.sqrt(16711680 / catchRate))));
+}
+
+/**
+ * The probability (0-1) that a Poké Ball thrown right now would catch `pokemon`, given the same
+ * conditions `attemptCatch` uses. All 4 shake checks must succeed, so this is the per-shake success
+ * probability raised to the 4th power (or exactly 1 above the certain-capture threshold).
+ */
+export function catchProbability(pokemon: Pokemon, options: CatchAttemptOptions = {}): number {
+  const catchRate = modifiedCatchRate(pokemon, options);
+  if (catchRate >= CERTAIN_CAPTURE_THRESHOLD) return 1;
+
+  return (shakeThreshold(catchRate) / SHAKE_ROLL_MAX) ** TOTAL_SHAKE_CHECKS;
+}
+
+export function attemptCatch(pokemon: Pokemon, options: CatchAttemptOptions = {}): CatchAttemptResult {
+  const random = options.random ?? Math.random;
+
+  const catchRate = modifiedCatchRate(pokemon, options);
+
+  if (catchRate >= CERTAIN_CAPTURE_THRESHOLD) {
     return { caught: true, shakes: TOTAL_SHAKE_CHECKS };
   }
 
-  const shakeThreshold = Math.floor(
-    SHAKE_THRESHOLD_NUMERATOR / Math.floor(Math.sqrt(Math.sqrt(16711680 / modifiedCatchRate))),
-  );
+  const threshold = shakeThreshold(catchRate);
 
   let shakes = 0;
   for (let i = 0; i < TOTAL_SHAKE_CHECKS; i++) {
-    if (Math.floor(random() * SHAKE_ROLL_MAX) >= shakeThreshold) break;
+    if (Math.floor(random() * SHAKE_ROLL_MAX) >= threshold) break;
     shakes += 1;
   }
 

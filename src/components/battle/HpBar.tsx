@@ -3,6 +3,12 @@ export interface HpBarProps {
   max: number;
   /** Use lighter label/track colors for placement on a dark background. */
   dark?: boolean;
+  /**
+   * What to show alongside the bar: "numeric" for an exact "current/max" reading (the player's own
+   * team), "percentage" for a rounded percent (the opponent, whose exact HP real games hide), or
+   * omit for just the bar with no label.
+   */
+  display?: "numeric" | "percentage";
 }
 
 function hpBarColor(fraction: number): string {
@@ -11,15 +17,22 @@ function hpBarColor(fraction: number): string {
   return "bg-red-500";
 }
 
-export function HpBar({ current, max, dark = false }: HpBarProps) {
+export function HpBar({ current, max, dark = false, display }: HpBarProps) {
   const fraction = max > 0 ? Math.max(0, Math.min(1, current / max)) : 0;
+  const labelClass = `text-[10px] font-bold italic ${dark ? "text-slate-300" : "text-slate-700"}`;
 
   return (
     <div className="flex items-center gap-1">
-      <span className={`text-[10px] font-bold italic ${dark ? "text-slate-300" : "text-slate-700"}`}>HP</span>
+      <span className={labelClass}>HP</span>
       <div className={`h-1.5 flex-1 rounded-full ${dark ? "bg-slate-900/50" : "bg-slate-800/20"}`}>
         <div className={`h-1.5 rounded-full ${hpBarColor(fraction)}`} style={{ width: `${fraction * 100}%` }} />
       </div>
+      {display === "numeric" && (
+        <span className={labelClass}>
+          {current}/{max}
+        </span>
+      )}
+      {display === "percentage" && <span className={labelClass}>{Math.round(fraction * 100)}%</span>}
     </div>
   );
 }

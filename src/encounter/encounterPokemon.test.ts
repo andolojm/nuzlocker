@@ -166,6 +166,33 @@ describe("encounterPokemon", () => {
     expect(pokemonSpy).toHaveBeenCalledTimes(3);
   });
 
+  it("re-rolls the whole moveset if every move comes back Status", async () => {
+    jest.spyOn(PikaLocal, "getRandomPokemon").mockResolvedValue(buildPokemon());
+    const statusMove = buildMove({ category: "Status" });
+    const damagingMoves = [
+      buildMove({ id: "1", category: "Physical" }),
+      buildMove({ id: "2", category: "Status" }),
+      buildMove({ id: "3", category: "Special" }),
+      buildMove({ id: "4", category: "Status" }),
+    ];
+    const moveSpy = jest
+      .spyOn(PikaLocal, "getRandomMove")
+      .mockResolvedValueOnce(statusMove)
+      .mockResolvedValueOnce(statusMove)
+      .mockResolvedValueOnce(statusMove)
+      .mockResolvedValueOnce(statusMove)
+      .mockResolvedValueOnce(damagingMoves[0])
+      .mockResolvedValueOnce(damagingMoves[1])
+      .mockResolvedValueOnce(damagingMoves[2])
+      .mockResolvedValueOnce(damagingMoves[3]);
+
+    const result = await encounterPokemon(1, [], undefined, LEVEL);
+
+    expect(result.moves).toEqual(damagingMoves);
+    expect(moveSpy).toHaveBeenCalledTimes(8);
+    expect(result.moves.some((move) => move.category !== "Status")).toBe(true);
+  });
+
   it("stops re-rolling duplicates once caughtPokemon has 500 or more entries", async () => {
     const bulbasaur = buildPokemon({ id: 1, name: { english: "Bulbasaur" } });
     const pokemonSpy = jest.spyOn(PikaLocal, "getRandomPokemon").mockResolvedValue(bulbasaur);

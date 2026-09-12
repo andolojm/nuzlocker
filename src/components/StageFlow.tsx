@@ -10,6 +10,7 @@ import { nextStageBlock, stageTypePosition } from "../engine/stages";
 import { BattleLog } from "./battle/BattleLog";
 import { BattleScreen } from "./battle/BattleScreen";
 import { TeamChanger } from "./battle/TeamChanger";
+import { DefeatScreen } from "./DefeatScreen";
 import { InitialChoiceScreen } from "./InitialChoiceScreen";
 
 export interface StageFlowProps {
@@ -169,6 +170,15 @@ interface BattleProps {
 /** Split out so useBattleController is only ever called once a team is confirmed and an opponent exists. */
 function Battle({ player, opponent, stageType, ballBonus, resume }: BattleProps) {
   const controller = useBattleController(player, opponent, stageType, ballBonus, resume);
+
+  if (controller.phase === "defeat-summary") {
+    return (
+      <DefeatScreen
+        deadPokemon={gameStateEngine.current.pokemon.dead}
+        onConfirm={() => gameStateEngine.resetRun()}
+      />
+    );
+  }
 
   return (
     <>

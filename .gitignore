@@ -25,3 +25,6 @@ dist-ssr
 
 # Claude Code local config
 .claude/settings.local.json
+
+# Ad-hoc playtesting notes
+testing-notes/

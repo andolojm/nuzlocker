@@ -61,6 +61,12 @@ describe("formatBattleLine", () => {
     );
   });
 
+  it("formats ability-caused damage, naming the ability", () => {
+    expect(formatBattleLine("|-damage|p1a: Charmander|50/100|[from] ability: Rough Skin", ctx)).toBe(
+      "Charmander is hurt by its Rough Skin!",
+    );
+  });
+
   it("returns null for plain heal with no [from] tag", () => {
     expect(formatBattleLine("|-heal|p1a: Bulbasaur|100/100", ctx)).toBeNull();
   });
@@ -68,6 +74,12 @@ describe("formatBattleLine", () => {
   it("formats item-caused healing", () => {
     expect(formatBattleLine("|-heal|p1a: Bulbasaur|90/100|[from] item: Leftovers", ctx)).toBe(
       "Bulbasaur restored a little HP using its Leftovers!",
+    );
+  });
+
+  it("formats ability-caused healing, naming the ability", () => {
+    expect(formatBattleLine("|-heal|p1a: Bulbasaur|90/100|[from] ability: Rain Dish", ctx)).toBe(
+      "Bulbasaur's Rain Dish restored its HP!",
     );
   });
 

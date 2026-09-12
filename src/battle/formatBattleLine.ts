@@ -143,6 +143,7 @@ export function formatBattleLine(line: string, context: FormatContext): string |
       if (from === "brn") return `${target} is hurt by its burn!`;
       if (from === "Leech Seed") return `${target}'s health is sapped by Leech Seed!`;
       if (from.startsWith("item:")) return `${target} is hurt by its ${from.slice("item: ".length)}!`;
+      if (from.startsWith("ability:")) return `${target} is hurt by its ${from.slice("ability: ".length)}!`;
       return `${target} is hurt by ${from}!`;
     }
 
@@ -151,6 +152,7 @@ export function formatBattleLine(line: string, context: FormatContext): string |
       if (!from) return null;
       const target = stripIdent(parts[2]);
       if (from.startsWith("item:")) return `${target} restored a little HP using its ${from.slice("item: ".length)}!`;
+      if (from.startsWith("ability:")) return `${target}'s ${from.slice("ability: ".length)} restored its HP!`;
       if (from === "drain") return `${target} had its energy drained!`;
       return `${target} regained health!`;
     }
