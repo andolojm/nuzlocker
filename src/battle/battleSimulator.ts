@@ -19,6 +19,9 @@ export interface MoveOption {
   choice: string;
   name: string;
   disabled: boolean;
+  /** Remaining/maximum PP, when the sim reports it. */
+  pp?: number;
+  maxPp?: number;
 }
 
 export interface SwitchOption {
@@ -138,6 +141,8 @@ export function buildShowdownTeam(pokemon: TeamPokemon[]): PokemonSet[] {
 interface RawMoveRequestData {
   move: string;
   disabled?: string | boolean;
+  pp?: number;
+  maxpp?: number;
 }
 
 interface RawSwitchRequestData {
@@ -160,6 +165,8 @@ function toBattleRequest(raw: RawChoiceRequest, canAttemptCatch: boolean): Battl
     choice: `move ${index + 1}`,
     name: move.move,
     disabled: Boolean(move.disabled),
+    pp: move.pp,
+    maxPp: move.maxpp,
   }));
 
   const switches: SwitchOption[] = raw.side.pokemon

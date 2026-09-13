@@ -12,7 +12,10 @@ import type { BattleParticipant, BattleRequest, ChoiceProvider } from "./battleS
 import { ATTEMPT_CATCH, ATTEMPT_RUN, BattleSimulator } from "./battleSimulator";
 import { formatBattleLine, parseStatusField, rawIdentName } from "./formatBattleLine";
 import type { StatusCode } from "./formatBattleLine";
-import { chooseTrainerMove } from "./trainerAi";
+import type { Boosts, Combatant, FieldConditions, HazardState } from "./trainerAi";
+import { NO_HAZARDS, chooseTrainerMove, clampBoost, toStatTable } from "./trainerAi";
+
+export type { Boosts };
 
 /** Mirrors @pkmn/sim's internal Gen5RNG.generateSeed(), which isn't itself exported. */
 function generateBattleSeed(): BattleSeed {
@@ -40,14 +43,7 @@ export type BattlePhase =
   | "caught"
   | "ran";
 
-/** Stat stage (-6..6) by short stat key (atk, def, spa, spd, spe, accuracy, evasion). Omitted/zero stats are unboosted. */
-export type Boosts = Record<string, number>;
-
 const BOOST_STATS = ["atk", "def", "spa", "spd", "spe", "accuracy", "evasion"];
-
-function clampBoost(value: number): number {
-  return Math.max(-6, Math.min(6, value));
-}
 
 /** Flavor text for a failed catch attempt, indexed by CatchAttemptResult.shakes (0-3). */
 const CATCH_FAIL_MESSAGES = [
@@ -158,8 +154,16 @@ export function useBattleController(
   const opponentStatusRef = useRef<(StatusCode | null)[]>(opponent.team.map(() => null));
   const deadReportedRef = useRef(new Set<number>());
   const opponentRevealedMovesRef = useRef<string[][]>(opponent.team.map(() => []));
+  /** Display names of moves the player's active Pokemon have been seen using, in first-seen order — this (not the full moveset) is what the trainer AI is allowed to know about the player's Pokemon. */
+  const playerRevealedMovesRef = useRef<string[][]>(player.team.map(() => []));
+  /** The player's active Pokemon's ability, once revealed in battle (e.g. an -ability activation) — undefined until then. */
+  const playerRevealedAbilityRef = useRef<(string | undefined)[]>(player.team.map(() => undefined));
   const playerBoostsRef = useRef<Boosts[]>(player.team.map(() => ({})));
   const opponentBoostsRef = useRef<Boosts[]>(opponent.team.map(() => ({})));
+  const weatherRef = useRef<string | null>(null);
+  const terrainRef = useRef<string | null>(null);
+  /** Entry hazards on the player's side of the field — only ever set by the opposing trainer's own hazard moves. */
+  const playerHazardsRef = useRef<HazardState>(NO_HAZARDS);
   const logBufferRef = useRef<string[]>([]);
   const turnNumberRef = useRef(1);
   /** Which Pokemon were active at the *start* of the turn currently being buffered, for the next battle log header. */
@@ -276,9 +280,47 @@ export function useBattleController(
       if (type === "move") {
         const ident = parts[2] ?? "";
         const moveName = parts[3];
-        if (moveName && ident.startsWith("p2")) {
-          const revealed = opponentRevealedMovesRef.current[opponentActiveIndexRef.current];
+        if (moveName) {
+          const isPlayerMove = ident.startsWith("p1");
+          const revealed = (isPlayerMove ? playerRevealedMovesRef : opponentRevealedMovesRef).current[
+            isPlayerMove ? playerActiveIndexRef.current : opponentActiveIndexRef.current
+          ];
           if (revealed && !revealed.includes(moveName)) revealed.push(moveName);
+        }
+        return;
+      }
+
+      if (type === "-ability") {
+        const ident = parts[2] ?? "";
+        if (ident.startsWith("p1")) playerRevealedAbilityRef.current[playerActiveIndexRef.current] = parts[3];
+        return;
+      }
+
+      if (type === "-weather") {
+        weatherRef.current = parts[2] === "none" ? null : parts[2];
+        return;
+      }
+
+      if (type === "-fieldstart" || type === "-fieldend") {
+        const condition = (parts[3] ?? "").replace(/^move: /, "");
+        if (condition.endsWith("Terrain")) terrainRef.current = type === "-fieldstart" ? condition : null;
+        return;
+      }
+
+      if (type === "-sidestart" || type === "-sideend") {
+        const ident = parts[2] ?? "";
+        if (!ident.startsWith("p1")) return;
+        const condition = (parts[3] ?? "").replace(/^move: /, "");
+        const isStart = type === "-sidestart";
+        const current = playerHazardsRef.current;
+        if (condition === "Stealth Rock") {
+          playerHazardsRef.current = { ...current, stealthRock: isStart };
+        } else if (condition === "Spikes") {
+          playerHazardsRef.current = { ...current, spikes: isStart ? Math.min(current.spikes + 1, 3) : 0 };
+        } else if (condition === "Toxic Spikes") {
+          playerHazardsRef.current = { ...current, toxicSpikes: isStart ? Math.min(current.toxicSpikes + 1, 2) : 0 };
+        } else if (condition === "Sticky Web") {
+          playerHazardsRef.current = { ...current, stickyWeb: isStart };
         }
         return;
       }
@@ -441,13 +483,48 @@ export function useBattleController(
       });
     };
 
-    const chooseP2: ChoiceProvider = (request) =>
-      chooseTrainerMove({
-        request,
-        attacker: { types: opponent.team[opponentActiveIndexRef.current].type },
-        defender: { types: player.team[playerActiveIndexRef.current].type },
-        rng: () => auxPrng.random(),
-      });
+    const chooseP2: ChoiceProvider = (request) => {
+      const attackerIndex = opponentActiveIndexRef.current;
+      const defenderIndex = playerActiveIndexRef.current;
+      const attackerPokemon = opponent.team[attackerIndex];
+      const defenderPokemon = player.team[defenderIndex];
+      const attackerHp = opponentHpRef.current[attackerIndex];
+      const defenderHp = playerHpRef.current[defenderIndex];
+
+      const attacker: Combatant = {
+        types: attackerPokemon.type,
+        level: attackerPokemon.level,
+        baseStats: toStatTable(attackerPokemon.base),
+        ivs: toStatTable(attackerPokemon.ivs),
+        boosts: opponentBoostsRef.current[attackerIndex],
+        currentHp: attackerHp.current,
+        maxHp: attackerHp.max,
+        status: opponentStatusRef.current[attackerIndex],
+        ability: attackerPokemon.ability,
+      };
+
+      const defender: Combatant = {
+        types: defenderPokemon.type,
+        level: defenderPokemon.level,
+        baseStats: toStatTable(defenderPokemon.base),
+        // No `ivs` here: the trainer AI doesn't get to know the player's exact IVs, only the
+        // min..max range its own stat math derives from base stats + level.
+        boosts: playerBoostsRef.current[defenderIndex],
+        currentHp: defenderHp.current,
+        maxHp: defenderHp.max,
+        status: playerStatusRef.current[defenderIndex],
+        ability: playerRevealedAbilityRef.current[defenderIndex],
+        knownMoves: playerRevealedMovesRef.current[defenderIndex],
+      };
+
+      const field: FieldConditions = {
+        weather: weatherRef.current,
+        terrain: terrainRef.current,
+        defenderHazards: playerHazardsRef.current,
+      };
+
+      return chooseTrainerMove({ request, attacker, defender, field, rng: () => auxPrng.random() });
+    };
 
     async function handleCatchAttempt(result: CatchAttemptResult) {
       if (result.caught) {
