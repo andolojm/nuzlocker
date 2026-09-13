@@ -391,6 +391,83 @@ describe("chooseTrainerMove", () => {
 
     expect(choice).toBe("move Growl");
   });
+
+  it("takes a setup move over a weak attack when there's no rush", () => {
+    const request = buildRequest({
+      // Swords Dance boosts Attack, and Tackle is this attacker's only (physical) damaging move —
+      // an ideal pairing, with no KO on the table to make waiting risky.
+      moves: [buildMoveOption("Swords Dance"), buildMoveOption("Tackle")],
+    });
+
+    const choice = chooseTrainerMove({
+      request,
+      attacker: buildCombatant(),
+      defender: buildCombatant(),
+      field: buildField(),
+      rng: noJitter,
+    });
+
+    expect(choice).toBe("move Swords Dance");
+  });
+
+  it("values a setup move much less on the second use of the same stat", () => {
+    const request = buildRequest({
+      moves: [buildMoveOption("Swords Dance"), buildMoveOption("Tackle")],
+    });
+    // A softer defender than the baseline so Tackle's own score is strong enough to expose the
+    // setup move's decay (against a tankier target the fresh baseline alone would still win out).
+    const softDefender = buildCombatant({ baseStats: { ...EVEN_STATS, def: 25 } });
+
+    const freshChoice = chooseTrainerMove({
+      request,
+      attacker: buildCombatant(),
+      defender: softDefender,
+      field: buildField(),
+      rng: noJitter,
+    });
+    expect(freshChoice).toBe("move Swords Dance");
+
+    const repeatChoice = chooseTrainerMove({
+      request,
+      attacker: buildCombatant({ boosts: { atk: 2 } }), // already used Swords Dance once
+      defender: softDefender,
+      field: buildField(),
+      rng: noJitter,
+    });
+    expect(repeatChoice).toBe("move Tackle");
+  });
+
+  it("still finishes a guaranteed KO instead of setting up", () => {
+    const request = buildRequest({
+      moves: [buildMoveOption("Swords Dance"), buildMoveOption("Tackle")],
+    });
+
+    const choice = chooseTrainerMove({
+      request,
+      attacker: buildCombatant({ baseStats: { ...EVEN_STATS, spe: 200 } }),
+      defender: buildCombatant({ currentHp: 5 }),
+      field: buildField(),
+      rng: noJitter,
+    });
+
+    expect(choice).toBe("move Tackle");
+  });
+
+  it("values inflicting a status condition highly over a weak attack", () => {
+    const request = buildRequest({
+      moves: [buildMoveOption("Thunder Wave"), buildMoveOption("Tackle")],
+    });
+
+    const choice = chooseTrainerMove({
+      request,
+      attacker: buildCombatant({ types: ["Electric"] }),
+      defender: buildCombatant(),
+      field: buildField(),
+      rng: noJitter,
+    });
+
+    expect(choice).toBe("move Thunder Wave");
+  });
 });
 
 describe("compareSpeed (via chooseTrainerMove's priority handling)", () => {

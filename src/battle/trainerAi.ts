@@ -111,6 +111,19 @@ const DEBUFF_RELEVANCE_BONUS = 10;
 /** Below this HP fraction, restoring HP is worth an extra flat bonus on top of the HP% it actually restores — survival matters more than the raw number once a KO is a real threat. */
 const LOW_HP_THRESHOLD = 0.35;
 const SURVIVAL_BONUS = 20;
+/** Value of one boosted stage of a self-targeted setup move, at full relevance and before decay. */
+const SETUP_MOVE_UNIT = 8;
+/** Per-stat multiplier applied per stage the attacker already holds in that stat — makes repeat casts of the same setup move rapidly less appealing without banning them outright (selfBoostAlreadyMaxed still hard-cuts once a raised stat hits +6). */
+const SETUP_STAGE_DECAY = 0.4;
+/** Flat bonus for a Status move that reliably inflicts a status condition, on top of the STATUS_MOVE_BASELINE — status is worth actively going for, not just a side effect. */
+const STATUS_INFLICT_BONUS: Record<StatusCode, number> = {
+  slp: 40,
+  frz: 35,
+  brn: 32,
+  tox: 30,
+  par: 25,
+  psn: 20,
+};
 
 function estimatedStatRange(
   baseStats: StatTable,
@@ -422,12 +435,89 @@ function debuffRelevanceBonus(moveData: MoveData, defender: Combatant): number {
   return (moveData.boosts[preferred] ?? 0) < 0 ? DEBUFF_RELEVANCE_BONUS : 0;
 }
 
+interface OffensiveMix {
+  physical: number;
+  special: number;
+}
+
+/** Base-power-weighted split of the attacker's own damaging moves, used to judge which offensive stat its setup moves should actually favor. */
+function offensiveMoveMix(moves: MoveOption[]): OffensiveMix {
+  let physical = 0;
+  let special = 0;
+  for (const move of moves) {
+    const data = Dex.moves.get(move.name);
+    if (data.category === "Physical") physical += data.basePower || 0;
+    else if (data.category === "Special") special += data.basePower || 0;
+  }
+  return { physical, special };
+}
+
+/** How relevant boosting a given stat is right now, from 0 (useless) to ~1 (ideal) — pairs the boost with the attacker's own moveset/stats and the current matchup rather than valuing every stat equally. */
+function setupStatRelevance(
+  stat: string,
+  defender: Combatant,
+  speed: SpeedComparison,
+  offense: OffensiveMix,
+): number {
+  const offenseTotal = offense.physical + offense.special;
+  switch (stat) {
+    case "atk":
+      return offenseTotal > 0 ? offense.physical / offenseTotal : 0.5;
+    case "spa":
+      return offenseTotal > 0 ? offense.special / offenseTotal : 0.5;
+    case "def": {
+      const leaning = preferredDebuffStat(defender.knownMoves);
+      if (leaning === "atk") return 0.9;
+      if (leaning === "spa") return 0.3;
+      return 0.6;
+    }
+    case "spd": {
+      const leaning = preferredDebuffStat(defender.knownMoves);
+      if (leaning === "spa") return 0.9;
+      if (leaning === "atk") return 0.3;
+      return 0.6;
+    }
+    case "spe":
+      // Already faster: a further speed boost rarely changes anything; still behind or unsure: valuable.
+      return speed === "win" ? 0.3 : 0.9;
+    default:
+      return 0.4; // accuracy/evasion — a minor, generically useful edge
+  }
+}
+
+/** Value of using a self-targeted setup move: highest the first time on a stat that pairs with the attacker's own offense/matchup, rapidly diminishing on repeat casts of the same stat (selfBoostAlreadyMaxed cuts it off entirely once maxed). */
+function setupMoveBonus(
+  moveData: MoveData,
+  attacker: Combatant,
+  defender: Combatant,
+  speed: SpeedComparison,
+  offense: OffensiveMix,
+): number {
+  if (!moveData.boosts || moveData.target !== "self") return 0;
+  let bonus = 0;
+  for (const [stat, amount] of Object.entries(moveData.boosts)) {
+    if (!amount || amount <= 0) continue;
+    const relevance = setupStatRelevance(stat, defender, speed, offense);
+    const stage = Math.max(0, attacker.boosts[stat] ?? 0);
+    const decay = Math.pow(SETUP_STAGE_DECAY, stage);
+    bonus += amount * relevance * decay * SETUP_MOVE_UNIT;
+  }
+  return bonus;
+}
+
+/** Flat bonus for a Status move that reliably inflicts a status condition — separate from (and additive with) any secondary-chance status handled by secondaryEffectBonus for damaging moves. */
+function statusInflictionBonus(moveData: MoveData): number {
+  if (!moveData.status) return 0;
+  return STATUS_INFLICT_BONUS[moveData.status as StatusCode] ?? 25;
+}
+
 function scoreMove(
   move: MoveOption,
   attacker: Combatant,
   defender: Combatant,
   field: FieldConditions,
   speed: SpeedComparison,
+  offense: OffensiveMix,
   rng: () => number,
 ): number {
   const moveData = Dex.moves.get(move.name);
@@ -444,7 +534,12 @@ function scoreMove(
     ) {
       score = 0; // this move would just fail
     } else {
-      score = STATUS_MOVE_BASELINE + debuffRelevanceBonus(moveData, defender) + healingMoveBonus(moveData, attacker);
+      score =
+        STATUS_MOVE_BASELINE +
+        debuffRelevanceBonus(moveData, defender) +
+        healingMoveBonus(moveData, attacker) +
+        statusInflictionBonus(moveData) +
+        setupMoveBonus(moveData, attacker, defender, speed, offense);
     }
   } else {
     const immune = !Dex.getImmunity(moveData.type, defender.types) || isImmuneViaAbility(moveData.type, defender.ability);
@@ -482,11 +577,12 @@ export function chooseTrainerMove(ctx: TrainerAiContext): string {
   if (usable.length === 0) return request.switches[0]?.choice ?? "move 1";
 
   const speed = compareSpeed(attacker, defender);
+  const offense = offensiveMoveMix(request.moves);
 
   let best = usable[0];
   let bestScore = -Infinity;
   for (const move of usable) {
-    const score = scoreMove(move, attacker, defender, field, speed, rng);
+    const score = scoreMove(move, attacker, defender, field, speed, offense, rng);
     if (score > bestScore) {
       bestScore = score;
       best = move;
