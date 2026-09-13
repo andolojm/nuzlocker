@@ -18,21 +18,26 @@ function hpBarColor(fraction: number): string {
 }
 
 export function HpBar({ current, max, dark = false, display }: HpBarProps) {
-  const fraction = max > 0 ? Math.max(0, Math.min(1, current / max)) : 0;
+  const fainted = current <= 0;
+  const fraction = fainted ? 1 : max > 0 ? Math.max(0, Math.min(1, current / max)) : 0;
   const labelClass = `text-[10px] font-bold italic ${dark ? "text-slate-300" : "text-slate-700"}`;
 
   return (
     <div className="flex items-center gap-1">
       <span className={labelClass}>HP</span>
       <div className={`h-1.5 flex-1 rounded-full ${dark ? "bg-slate-900/50" : "bg-slate-800/20"}`}>
-        <div className={`h-1.5 rounded-full ${hpBarColor(fraction)}`} style={{ width: `${fraction * 100}%` }} />
+        <div
+          className={`h-1.5 rounded-full ${fainted ? "bg-red-500" : hpBarColor(fraction)}`}
+          style={{ width: `${fraction * 100}%` }}
+        />
       </div>
-      {display === "numeric" && (
+      {fainted && display && <span className={labelClass}>FNT</span>}
+      {!fainted && display === "numeric" && (
         <span className={labelClass}>
           {current}/{max}
         </span>
       )}
-      {display === "percentage" && <span className={labelClass}>{Math.round(fraction * 100)}%</span>}
+      {!fainted && display === "percentage" && <span className={labelClass}>{Math.round(fraction * 100)}%</span>}
     </div>
   );
 }
