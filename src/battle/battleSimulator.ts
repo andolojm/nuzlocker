@@ -156,7 +156,7 @@ interface RawChoiceRequest {
   teamPreview?: true;
   wait?: true;
   forceSwitch?: boolean[];
-  active?: { moves: RawMoveRequestData[] }[];
+  active?: { moves: RawMoveRequestData[]; trapped?: boolean }[];
   side: { pokemon: RawSwitchRequestData[] };
 }
 
@@ -169,16 +169,24 @@ function toBattleRequest(raw: RawChoiceRequest, canAttemptCatch: boolean): Battl
     maxPp: move.maxpp,
   }));
 
-  const switches: SwitchOption[] = raw.side.pokemon
-    .map((switchPokemon, index) => ({ switchPokemon, index }))
-    .filter(({ switchPokemon }) => !switchPokemon.active && !switchPokemon.condition.endsWith("fnt"))
-    .map(({ switchPokemon, index }) => ({
-      choice: `switch ${index + 1}`,
-      // Deliberately derived from ident (nickname), not details (species): a padded Catch-stage
-      // team can have multiple same-species teammates (filler Magikarp), disambiguated only by
-      // their battleNickname-assigned nickname, which only ident carries.
-      name: rawIdentName(switchPokemon.ident),
-    }));
+  // The sim sets active[0].trapped when a volatile like Fire Spin/Wrap's partial-trap (or an
+  // ability such as Shadow Tag) blocks a voluntary switch this turn — offering switch options
+  // anyway would let the player submit a choice the sim rejects outright, which the vendored
+  // BattlePlayer.receiveError turns into a thrown error with no request left to retry.
+  const trapped = Boolean(raw.active?.[0]?.trapped);
+
+  const switches: SwitchOption[] = trapped
+    ? []
+    : raw.side.pokemon
+        .map((switchPokemon, index) => ({ switchPokemon, index }))
+        .filter(({ switchPokemon }) => !switchPokemon.active && !switchPokemon.condition.endsWith("fnt"))
+        .map(({ switchPokemon, index }) => ({
+          choice: `switch ${index + 1}`,
+          // Deliberately derived from ident (nickname), not details (species): a padded Catch-stage
+          // team can have multiple same-species teammates (filler Magikarp), disambiguated only by
+          // their battleNickname-assigned nickname, which only ident carries.
+          name: rawIdentName(switchPokemon.ident),
+        }));
 
   return {
     forceSwitch: Boolean(raw.forceSwitch?.some(Boolean)),

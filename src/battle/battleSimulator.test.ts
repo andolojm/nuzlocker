@@ -182,6 +182,41 @@ describe("BattleSimulator", () => {
     expect(switchOption?.name).toBe("Sirfetch'd");
   }, 15000);
 
+  it("stops offering switch options once the active Pokemon is trapped (e.g. by Fire Spin)", async () => {
+    // Before this fix, `switches` was built purely from side.pokemon and ignored the sim's own
+    // `trapped` flag, so a player caught by a partial-trap move could still be shown (and submit)
+    // an illegal switch — which the sim rejects with an |error| line that throws inside the
+    // vendored BattlePlayer, permanently stalling the battle with no request left to answer.
+    const onix = buildTeamPokemon({ name: { english: "Onix" } }, ["Tackle"]);
+    const caterpie = buildCaterpie();
+    const attacker = buildTeamPokemon({ id: 4, name: { english: "Charmander" }, type: ["Fire"] }, ["Fire Spin"]);
+    const requests: BattleRequest[] = [];
+
+    const simulator = new BattleSimulator(
+      { name: "Bot 1", team: [onix, caterpie] },
+      { name: "Bot 2", team: [attacker] },
+      StageType.Battle,
+      undefined,
+      [1, 2, 3, 4],
+    );
+
+    await simulator.run((request) => {
+      requests.push(request);
+      if (request.forceSwitch) return request.switches[0]?.choice ?? "move 1";
+      return request.moves.find((m) => !m.disabled)?.choice ?? "move 1";
+    }, alwaysFirstMove);
+
+    // Caterpie is a legal switch target before Fire Spin lands...
+    expect(requests[0]?.switches).toEqual([{ choice: "switch 2", name: "Caterpie" }]);
+    // ...but once Fire Spin traps Onix, it's withheld even though Caterpie is still alive and
+    // benched (it's later confirmed alive: it switches in for real once Onix faints).
+    expect(requests[1]?.forceSwitch).toBe(false);
+    expect(requests[1]?.switches).toEqual([]);
+
+    const faintSwitch = requests.find((request) => request.forceSwitch);
+    expect(faintSwitch?.switches).toEqual([{ choice: "switch 2", name: "Caterpie" }]);
+  }, 15000);
+
   it("disambiguates switch options for same-species teammates, and the battle concludes cleanly on a full wipe", async () => {
     // Mirrors a padded Catch-stage team: several identical-species fillers behind the lead. Before
     // battleNickname, every switch option after the lead fainted shared the name "Magikarp", so
