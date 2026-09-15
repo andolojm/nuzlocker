@@ -1,104 +1,10 @@
 import { Dex } from "@pkmn/sim";
-import { calculateStat } from "../engine/stats";
-import type { BattleRequest, MoveOption } from "./battleSimulator";
-import type { StatusCode } from "./formatBattleLine";
+import type { MoveOption } from "../battleSimulator";
+import type { StatusCode } from "../formatBattleLine";
+import { accuracyStageMultiplier, compareSpeed, estimatedStat } from "./statMath";
+import type { Combatant, FieldConditions, SpeedComparison, StatKey, TrainerAiContext, TrainerAiImplementation } from "./types";
 
 type MoveData = ReturnType<typeof Dex.moves.get>;
-
-export type StatKey = "hp" | "atk" | "def" | "spa" | "spd" | "spe";
-
-export interface StatTable {
-  hp: number;
-  atk: number;
-  def: number;
-  spa: number;
-  spd: number;
-  spe: number;
-}
-
-/** Stat stage (-6..6) by short stat key (atk, def, spa, spd, spe, accuracy, evasion). Omitted/zero stats are unboosted. */
-export type Boosts = Record<string, number>;
-
-export function clampBoost(value: number): number {
-  return Math.max(-6, Math.min(6, value));
-}
-
-/** Converts a base-stat-shaped object (species base stats, or an IV spread — same field names) to the short-key StatTable this module works with. */
-export function toStatTable(stats: {
-  HP: number;
-  Attack: number;
-  Defense: number;
-  "Sp. Attack": number;
-  "Sp. Defense": number;
-  Speed: number;
-}): StatTable {
-  return {
-    hp: stats.HP,
-    atk: stats.Attack,
-    def: stats.Defense,
-    spa: stats["Sp. Attack"],
-    spd: stats["Sp. Defense"],
-    spe: stats.Speed,
-  };
-}
-
-export interface Combatant {
-  types: string[];
-  level: number;
-  /** Species base stats (no IVs/EVs baked in). */
-  baseStats: StatTable;
-  /**
-   * Individual values, 0-31 per stat. Omit for a Pokemon whose true IVs the trainer AI has no way
-   * to know (the human player's active Pokemon) — its real stats are then treated as a min..max
-   * range (see `compareSpeed`) instead of an exact value.
-   */
-  ivs?: StatTable;
-  boosts: Boosts;
-  currentHp: number;
-  maxHp: number;
-  status: StatusCode | null;
-  /** Own ability is always known; the opponent's is only known once revealed in battle. */
-  ability?: string;
-  /**
-   * Moves this Pokemon is confirmed to know. Only ever populated for the human player's Pokemon,
-   * restricted to moves already revealed in this battle — the AI's own moveset is already fully
-   * available via `TrainerAiContext.request.moves`, so this field doesn't apply to it.
-   */
-  knownMoves?: string[];
-}
-
-export type SpeedComparison = "win" | "lose" | "range";
-
-export interface HazardState {
-  stealthRock: boolean;
-  /** Layers, 0-3. */
-  spikes: number;
-  /** Layers, 0-2. */
-  toxicSpikes: number;
-  stickyWeb: boolean;
-}
-
-export const NO_HAZARDS: HazardState = { stealthRock: false, spikes: 0, toxicSpikes: 0, stickyWeb: false };
-
-export interface FieldConditions {
-  /** Raw Showdown weather id ("RainDance", "SunnyDay", "Sandstorm", "Hail", "Snow"), or null. */
-  weather: string | null;
-  /** Terrain name as Showdown reports it ("Electric Terrain", etc.), or null. */
-  terrain: string | null;
-  /** Entry hazards on the defender's side — the side the attacker's own hazard moves would affect. */
-  defenderHazards: HazardState;
-}
-
-export interface TrainerAiContext {
-  request: BattleRequest;
-  /** The AI's own active Pokemon. */
-  attacker: Combatant;
-  /** The player's active Pokemon. */
-  defender: Combatant;
-  field: FieldConditions;
-  /** Injectable for deterministic tests; defaults to Math.random. */
-  rng?: () => number;
-}
 
 const STATUS_MOVE_BASELINE = 30;
 const NO_POWER_MOVE_BASELINE = 60;
@@ -124,63 +30,6 @@ const STATUS_INFLICT_BONUS: Record<StatusCode, number> = {
   par: 25,
   psn: 20,
 };
-
-function estimatedStatRange(
-  baseStats: StatTable,
-  ivs: StatTable | undefined,
-  level: number,
-  key: StatKey,
-): { min: number; max: number } {
-  const isHp = key === "hp";
-  if (ivs) {
-    const value = calculateStat(baseStats[key], ivs[key], level, isHp);
-    return { min: value, max: value };
-  }
-  return {
-    min: calculateStat(baseStats[key], 0, level, isHp),
-    max: calculateStat(baseStats[key], 31, level, isHp),
-  };
-}
-
-function statStageMultiplier(stage: number): number {
-  const clamped = clampBoost(stage);
-  return clamped >= 0 ? (2 + clamped) / 2 : 2 / (2 - clamped);
-}
-
-function accuracyStageMultiplier(stage: number): number {
-  const clamped = clampBoost(stage);
-  return clamped >= 0 ? (3 + clamped) / 3 : 3 / (3 - clamped);
-}
-
-/** Best single-value estimate of a stat: exact when IVs are known, otherwise the midpoint of the 0..31 IV range. */
-function estimatedStat(combatant: Combatant, key: StatKey): number {
-  const { min, max } = estimatedStatRange(combatant.baseStats, combatant.ivs, combatant.level, key);
-  const midpoint = (min + max) / 2;
-  if (key === "hp") return midpoint;
-  return midpoint * statStageMultiplier(combatant.boosts[key] ?? 0);
-}
-
-function paralysisSpeedMultiplier(status: StatusCode | null): number {
-  return status === "par" ? 0.5 : 1;
-}
-
-/** Compares true Speed (stat stages, paralysis included) between the two sides. "range" covers both a tie and any case where the defender's unknown IVs could put it on either side of the attacker. */
-export function compareSpeed(attacker: Combatant, defender: Combatant): SpeedComparison {
-  const attackerRange = estimatedStatRange(attacker.baseStats, attacker.ivs, attacker.level, "spe");
-  const defenderRange = estimatedStatRange(defender.baseStats, defender.ivs, defender.level, "spe");
-
-  const attackerMultiplier = statStageMultiplier(attacker.boosts.spe ?? 0) * paralysisSpeedMultiplier(attacker.status);
-  const defenderMultiplier = statStageMultiplier(defender.boosts.spe ?? 0) * paralysisSpeedMultiplier(defender.status);
-
-  const attackerMin = attackerRange.min * attackerMultiplier;
-  const attackerMax = attackerRange.max * attackerMultiplier;
-  const defenderMin = defenderRange.min * defenderMultiplier;
-  const defenderMax = defenderRange.max * defenderMultiplier;
-
-  if (attackerMin > defenderMax) return "win";
-  if (attackerMax < defenderMin) return "lose";
-  return "range";
-}
 
 const STAB_DOUBLING_ABILITIES = new Set(["Adaptability"]);
 
@@ -368,7 +217,7 @@ function drainBonus(rawDamage: number, drainFrac: number, attacker: Combatant): 
   return (usefulHeal / attacker.maxHp) * 40;
 }
 
-function isHazardMoveRedundant(moveId: string, hazards: HazardState): boolean {
+function isHazardMoveRedundant(moveId: string, hazards: FieldConditions["defenderHazards"]): boolean {
   switch (moveId) {
     case "stealthrock":
       return hazards.stealthRock;
@@ -566,8 +415,8 @@ function scoreMove(
   return score * jitter;
 }
 
-/** Picks the opposing trainer's move: favors super-effective/STAB/high-expected-damage moves, avoids immune or failing moves. */
-export function chooseTrainerMove(ctx: TrainerAiContext): string {
+/** Picks the opposing trainer's move: favors super-effective/STAB/high-expected-damage moves, avoids immune or failing moves, and weighs status/setup/hazard/healing options against attacking. */
+function chooseMove(ctx: TrainerAiContext): string {
   const { request, attacker, defender, field } = ctx;
   const rng = ctx.rng ?? Math.random;
 
@@ -590,3 +439,9 @@ export function chooseTrainerMove(ctx: TrainerAiContext): string {
   }
   return best.choice;
 }
+
+export const basicTrainerAi: TrainerAiImplementation = {
+  id: "basic",
+  label: "Basic",
+  chooseMove,
+};

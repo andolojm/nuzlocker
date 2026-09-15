@@ -1,6 +1,7 @@
 import { PRNG } from "@pkmn/sim";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Move } from "../api/pikaserve";
+import { getSelectedTrainerAiId } from "../api/trainerAiSetting";
 import type { PartySlot } from "../components/battle/partySlot";
 import type { CatchAttemptResult } from "../encounter/catchPokemon";
 import { MAX_ACTIVE_TEAM_SIZE, gameStateEngine } from "../engine/gameStateEngine";
@@ -13,7 +14,7 @@ import { ATTEMPT_CATCH, ATTEMPT_RUN, BattleSimulator } from "./battleSimulator";
 import { formatBattleLine, parseStatusField, rawIdentName } from "./formatBattleLine";
 import type { StatusCode } from "./formatBattleLine";
 import type { Boosts, Combatant, FieldConditions, HazardState } from "./trainerAi";
-import { NO_HAZARDS, chooseTrainerMove, clampBoost, toStatTable } from "./trainerAi";
+import { NO_HAZARDS, clampBoost, getTrainerAiImplementation, toStatTable } from "./trainerAi";
 
 export type { Boosts };
 
@@ -523,7 +524,8 @@ export function useBattleController(
         defenderHazards: playerHazardsRef.current,
       };
 
-      return chooseTrainerMove({ request, attacker, defender, field, rng: () => auxPrng.random() });
+      const trainerAi = getTrainerAiImplementation(getSelectedTrainerAiId());
+      return trainerAi.chooseMove({ request, attacker, defender, field, rng: () => auxPrng.random() });
     };
 
     async function handleCatchAttempt(result: CatchAttemptResult) {

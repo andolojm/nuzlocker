@@ -1,6 +1,9 @@
-import type { BattleRequest, MoveOption } from "./battleSimulator";
-import type { Combatant, FieldConditions, StatTable } from "./trainerAi";
-import { NO_HAZARDS, chooseTrainerMove } from "./trainerAi";
+import type { BattleRequest, MoveOption } from "../battleSimulator";
+import { basicTrainerAi } from "./basic";
+import type { Combatant, FieldConditions, StatTable } from "./types";
+import { NO_HAZARDS } from "./types";
+
+const chooseTrainerMove = basicTrainerAi.chooseMove;
 
 function buildMoveOption(name: string, overrides: Partial<MoveOption> = {}): MoveOption {
   return { choice: `move ${name}`, name, disabled: false, ...overrides };

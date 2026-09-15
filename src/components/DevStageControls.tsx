@@ -1,4 +1,6 @@
 import { useRef, useState } from "react";
+import { getSelectedTrainerAiId, setSelectedTrainerAiId } from "../api/trainerAiSetting";
+import { DEFAULT_TRAINER_AI_ID, TRAINER_AI_IMPLEMENTATIONS } from "../battle/trainerAi";
 import { gameStateEngine } from "../engine/gameStateEngine";
 import { injectTestTeam } from "../engine/injectTestTeam";
 import { MoveVisibilityEditor } from "./MoveVisibilityEditor";
@@ -11,6 +13,7 @@ export interface DevStageControlsProps {
 export function DevStageControls({ onReset }: DevStageControlsProps) {
   const [injecting, setInjecting] = useState(false);
   const [showMoveEditor, setShowMoveEditor] = useState(false);
+  const [trainerAiId, setTrainerAiId] = useState(() => getSelectedTrainerAiId() ?? DEFAULT_TRAINER_AI_ID);
   const [status, _setStatus] = useState<string | null>(null);
   const timer = useRef<number>(null);
   const setStatus = (status?: string) => {
@@ -33,6 +36,11 @@ export function DevStageControls({ onReset }: DevStageControlsProps) {
     } finally {
       setInjecting(false);
     }
+  }
+
+  function handleTrainerAiChange(id: string) {
+    setTrainerAiId(id);
+    setSelectedTrainerAiId(id);
   }
 
   function handleResetState() {
@@ -103,6 +111,20 @@ export function DevStageControls({ onReset }: DevStageControlsProps) {
       >
         HIDDEN MOVES
       </button>
+      <label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+        TRAINER AI
+        <select
+          value={trainerAiId}
+          onChange={(event) => handleTrainerAiChange(event.target.value)}
+          className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+        >
+          {TRAINER_AI_IMPLEMENTATIONS.map((impl) => (
+            <option key={impl.id} value={impl.id}>
+              {impl.label}
+            </option>
+          ))}
+        </select>
+      </label>
       <div className="flex gap-3">
         <button
           type="button"
