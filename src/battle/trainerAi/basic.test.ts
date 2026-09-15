@@ -15,6 +15,7 @@ function buildRequest(overrides: Partial<BattleRequest> = {}): BattleRequest {
     moves: [],
     switches: [],
     canAttemptCatch: false,
+    trapped: false,
     ...overrides,
   };
 }

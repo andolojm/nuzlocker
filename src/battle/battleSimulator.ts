@@ -35,6 +35,8 @@ export interface BattleRequest {
   switches: SwitchOption[];
   /** True only for the catching side of a StageType.Catch battle. */
   canAttemptCatch: boolean;
+  /** True when a volatile (e.g. Fire Spin/Wrap's partial-trap) or ability blocks a voluntary switch this turn. */
+  trapped: boolean;
 }
 
 /** Return this sentinel from a ChoiceProvider to attempt a catch, only when request.canAttemptCatch is true. */
@@ -193,6 +195,7 @@ function toBattleRequest(raw: RawChoiceRequest, canAttemptCatch: boolean): Battl
     moves,
     switches,
     canAttemptCatch,
+    trapped,
   };
 }
 

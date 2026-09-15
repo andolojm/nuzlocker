@@ -24,6 +24,9 @@ export interface BattleScreenProps {
   opponentHp: HpValue;
   playerStatus: StatusCode | null;
   opponentStatus: StatusCode | null;
+  /** Whether the active player/opponent Pokemon is currently blocked from voluntarily switching (e.g. Fire Spin). */
+  playerTrapped: boolean;
+  opponentTrapped: boolean;
   /** Display names of moves the opponent has been seen using so far — shown in its info modal. */
   opponentRevealedMoves: string[];
   /** Whether each Pokemon in the opponent's party (in team order) has fainted. */
@@ -55,6 +58,8 @@ export function BattleScreen({
   opponentHp,
   playerStatus,
   opponentStatus,
+  playerTrapped,
+  opponentTrapped,
   opponentRevealedMoves,
   opponentPartyFainted,
   playerBoosts,
@@ -126,6 +131,7 @@ export function BattleScreen({
             pokemon={opponentPokemon}
             hp={opponentHp}
             status={opponentStatus}
+            trapped={opponentTrapped}
             statusChipPosition="bottom-right"
             onInfoClick={() => setShowOpponentInfo(true)}
             variant="opponent"
@@ -148,6 +154,7 @@ export function BattleScreen({
             pokemon={playerPokemon}
             hp={playerHp}
             status={playerStatus}
+            trapped={playerTrapped}
             statusChipPosition="top-left"
             onInfoClick={() => setShowPlayerInfo(true)}
             variant="player"

@@ -20,6 +20,8 @@ export interface PokemonInfoBoxProps {
   pokemon: TeamPokemon;
   hp: { current: number; max: number };
   status?: StatusCode | null;
+  /** True when a volatile (e.g. Fire Spin/Wrap's partial-trap) or ability blocks a voluntary switch. */
+  trapped?: boolean;
   /** Where the status chip hangs outside the box's border. Defaults to "bottom-right". */
   statusChipPosition?: "top-left" | "bottom-right";
   /** Renders an "INFO" link that opens the PokemonInfoModal. Omit to hide it. */
@@ -70,10 +72,20 @@ function StatusChip({ status, position }: { status: StatusCode; position: "top-l
   );
 }
 
+/** Shown inline after the Pokemon's name when a partial-trap effect (or similar) blocks switching. */
+function TrappedChip() {
+  return (
+    <span className="shrink-0 rounded bg-red-700 px-1.5 py-0.5 text-[9px] font-bold text-white min-[600px]:text-[10px]">
+      Trapped
+    </span>
+  );
+}
+
 export function PokemonInfoBox({
   pokemon,
   hp,
   status,
+  trapped,
   statusChipPosition = "bottom-right",
   onInfoClick,
   variant = "player",
@@ -86,9 +98,14 @@ export function PokemonInfoBox({
       style={{ background: typeBackground(pokemon.type) }}
     >
       {status && <StatusChip status={status} position={statusChipPosition} />}
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-bold text-slate-900 min-[600px]:text-base">{pokemon.name.english}</span>
-        <span className="text-xs font-semibold text-slate-700 min-[600px]:text-sm">Lv{pokemon.level}</span>
+      <div className="flex items-center justify-between gap-1">
+        <span className="flex min-w-0 items-center gap-1">
+          <span className="truncate text-sm font-bold text-slate-900 min-[600px]:text-base">
+            {pokemon.name.english}
+          </span>
+          {trapped && <TrappedChip />}
+        </span>
+        <span className="shrink-0 text-xs font-semibold text-slate-700 min-[600px]:text-sm">Lv{pokemon.level}</span>
       </div>
       <div className="mt-1.5">
         <HpBar current={hp.current} max={hp.max} display={variant === "player" ? "numeric" : "percentage"} />

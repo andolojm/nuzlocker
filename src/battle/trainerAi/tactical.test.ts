@@ -10,7 +10,7 @@ function buildMoveOption(name: string, overrides: Partial<MoveOption> = {}): Mov
 }
 
 function buildRequest(overrides: Partial<BattleRequest> = {}): BattleRequest {
-  return { forceSwitch: false, moves: [], switches: [], canAttemptCatch: false, ...overrides };
+  return { forceSwitch: false, moves: [], switches: [], canAttemptCatch: false, trapped: false, ...overrides };
 }
 
 const EVEN_STATS: StatTable = { hp: 100, atk: 100, def: 100, spa: 100, spd: 100, spe: 100 };

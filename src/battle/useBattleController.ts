@@ -81,6 +81,9 @@ export interface UseBattleControllerResult {
   opponentHp: HpValue;
   playerStatus: StatusCode | null;
   opponentStatus: StatusCode | null;
+  /** Whether the active player/opponent Pokemon is currently blocked from voluntarily switching (e.g. Fire Spin). */
+  playerTrapped: boolean;
+  opponentTrapped: boolean;
   /** Display names of moves the active opponent Pokemon has been seen using so far this battle. */
   opponentRevealedMoves: string[];
   /** Stat stage changes on the active player/opponent Pokemon, keyed by short stat name. */
@@ -115,6 +118,9 @@ interface Snapshot {
   opponentRevealedMoves: string[][];
   playerBoosts: Boosts[];
   opponentBoosts: Boosts[];
+  /** Whether the active player/opponent Pokemon is currently blocked from voluntarily switching (e.g. Fire Spin). */
+  playerTrapped: boolean;
+  opponentTrapped: boolean;
 }
 
 function fullHp(pokemon: TeamPokemon): HpValue {
@@ -161,6 +167,21 @@ export function useBattleController(
   const playerRevealedAbilityRef = useRef<(string | undefined)[]>(player.team.map(() => undefined));
   const playerBoostsRef = useRef<Boosts[]>(player.team.map(() => ({})));
   const opponentBoostsRef = useRef<Boosts[]>(opponent.team.map(() => ({})));
+  /** Whether the player's active Pokemon is blocked from voluntarily switching — read straight off
+   * the sim's own request (set in chooseP1 below), so it covers every trap source, silent
+   * abilities (Shadow Tag, Arena Trap) included, and always matches what the switch menu offers. */
+  const playerTrappedRef = useRef(false);
+  /**
+   * Whether the opponent's active Pokemon is trapped — inferred from the battle log (see
+   * applyLogLine's `-activate`/`-damage`/`-end` handling below) rather than its own request,
+   * since that request is delivered on a separate stream than the player's and isn't guaranteed
+   * to have been processed yet by the time the player's turn snapshot is taken. Log lines are
+   * safe to rely on here because they're always fully flushed before either side's next request,
+   * the same guarantee opponentHp/opponentStatus above already depend on. This only catches
+   * moves that announce themselves (Fire Spin, Mean Look, ...) — same as what the player would
+   * actually see in a real battle — not silent trapping abilities on the opponent's side.
+   */
+  const opponentTrappedRef = useRef(false);
   const weatherRef = useRef<string | null>(null);
   const terrainRef = useRef<string | null>(null);
   /** Entry hazards on the player's side of the field — only ever set by the opposing trainer's own hazard moves. */
@@ -191,6 +212,8 @@ export function useBattleController(
     opponentRevealedMoves: opponentRevealedMovesRef.current,
     playerBoosts: playerBoostsRef.current,
     opponentBoosts: opponentBoostsRef.current,
+    playerTrapped: playerTrappedRef.current,
+    opponentTrapped: opponentTrappedRef.current,
   }));
 
   const takeSnapshot = useCallback(
@@ -204,6 +227,8 @@ export function useBattleController(
       opponentRevealedMoves: opponentRevealedMovesRef.current.map((moves) => [...moves]),
       playerBoosts: playerBoostsRef.current.map((boosts) => ({ ...boosts })),
       opponentBoosts: opponentBoostsRef.current.map((boosts) => ({ ...boosts })),
+      playerTrapped: playerTrappedRef.current,
+      opponentTrapped: opponentTrappedRef.current,
     }),
     [],
   );
@@ -274,8 +299,27 @@ export function useBattleController(
           opponentHpRef.current[index] = hp;
           opponentStatusRef.current[index] = status;
           opponentBoostsRef.current[index] = {};
+          opponentTrappedRef.current = false;
         }
         return;
+      }
+
+      if (type === "-activate" && parts[3] === "trapped") {
+        // Mean Look/Block/Spider Web's `trapped` volatile (distinct from `partiallytrapped`
+        // below): no residual damage or -end line ever announces it, so this -activate line is
+        // the only signal. Scoped to the opponent — the player's own trapped state is read
+        // straight off the sim's request (see chooseP1), which also catches silent
+        // ability-based trapping (Shadow Tag, Arena Trap) this log line can't.
+        if (!parts[2]?.startsWith("p1")) opponentTrappedRef.current = true;
+        return;
+      }
+
+      if ((type === "-damage" || type === "-end") && parts[parts.length - 1] === "[partiallytrapped]") {
+        // Fire Spin/Wrap/Bind/etc.: -damage carries the tag on each residual tick (trap started
+        // or still active), -end when it wears off or the trapper leaves.
+        const ident = parts[2];
+        if (!ident?.startsWith("p1")) opponentTrappedRef.current = type === "-damage";
+        // Fall through to the generic -damage handling below for the HP update itself.
       }
 
       if (type === "move") {
@@ -418,6 +462,7 @@ export function useBattleController(
         const index = isPlayer ? playerActiveIndexRef.current : opponentActiveIndexRef.current;
         (isPlayer ? playerHpRef : opponentHpRef).current[index] = { current: 0, max: team[index].base.HP };
         (isPlayer ? playerStatusRef : opponentStatusRef).current[index] = null;
+        if (!isPlayer) opponentTrappedRef.current = false;
 
         if (isPlayer && !deadReportedRef.current.has(index)) {
           deadReportedRef.current.add(index);
@@ -472,6 +517,7 @@ export function useBattleController(
 
         pendingRequestRef.current = request;
         resolveChoiceRef.current = resolve;
+        playerTrappedRef.current = request.trapped;
 
         setSnapshot(takeSnapshot());
         recordTurn(events);
@@ -700,6 +746,8 @@ export function useBattleController(
     opponentHp: snapshot.opponentHp[snapshot.opponentActiveIndex],
     playerStatus: snapshot.playerStatus[snapshot.playerActiveIndex] ?? null,
     opponentStatus: snapshot.opponentStatus[snapshot.opponentActiveIndex] ?? null,
+    playerTrapped: snapshot.playerTrapped,
+    opponentTrapped: snapshot.opponentTrapped,
     opponentRevealedMoves: snapshot.opponentRevealedMoves[snapshot.opponentActiveIndex] ?? [],
     playerBoosts: snapshot.playerBoosts[snapshot.playerActiveIndex] ?? {},
     opponentBoosts: snapshot.opponentBoosts[snapshot.opponentActiveIndex] ?? {},
