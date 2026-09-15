@@ -4,6 +4,7 @@ import { DEFAULT_TRAINER_AI_ID, TRAINER_AI_IMPLEMENTATIONS } from "../battle/tra
 import { gameStateEngine } from "../engine/gameStateEngine";
 import { injectTestTeam } from "../engine/injectTestTeam";
 import { MoveVisibilityEditor } from "./MoveVisibilityEditor";
+import { preloadAllPokemonImages } from "../util/preloadPokemonImages";
 
 export interface DevStageControlsProps {
   /** Called after the game state is replaced out from under React (inject/import/reset), so the caller can force the stage to remount. */
@@ -13,6 +14,8 @@ export interface DevStageControlsProps {
 export function DevStageControls({ onReset }: DevStageControlsProps) {
   const [injecting, setInjecting] = useState(false);
   const [showMoveEditor, setShowMoveEditor] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [preloadingImages, setPreloadingImages] = useState(false);
   const [trainerAiId, setTrainerAiId] = useState(() => getSelectedTrainerAiId() ?? DEFAULT_TRAINER_AI_ID);
   const [status, _setStatus] = useState<string | null>(null);
   const timer = useRef<number>(null);
@@ -35,6 +38,21 @@ export function DevStageControls({ onReset }: DevStageControlsProps) {
       console.error("Failed to inject test team", error);
     } finally {
       setInjecting(false);
+    }
+  }
+
+  async function handlePreloadImages() {
+    setPreloadingImages(true);
+    try {
+      await preloadAllPokemonImages((progress) => {
+        setStatus(`Caching Pokemon images… ${progress.loaded}/${progress.total}`);
+      });
+      setStatus("Cached all Pokemon images for offline use.");
+    } catch (error) {
+      console.error("Failed to preload Pokemon images", error);
+      setStatus("Couldn't cache Pokemon images — see console.");
+    } finally {
+      setPreloadingImages(false);
     }
   }
 
@@ -77,78 +95,94 @@ export function DevStageControls({ onReset }: DevStageControlsProps) {
 
   return (
     <div className="mt-4 flex flex-col items-center gap-3">
-      <h2 className="text-xs font-semibold uppercase text-slate-500">
-        Dev tools
-      </h2>
-      <div className="flex gap-3">
-        <button
-          type="button"
-          onClick={() => gameStateEngine.regressState()}
-          className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-        >
-          BACK
-        </button>
-        <button
-          type="button"
-          onClick={() => gameStateEngine.progressState()}
-          className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-        >
-          NEXT
-        </button>
-      </div>
       <button
         type="button"
-        disabled={injecting}
-        onClick={handleInjectTestTeam}
-        className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60"
+        onClick={() => setExpanded((current) => !current)}
+        className="text-xs font-semibold uppercase text-slate-500 hover:text-slate-700"
       >
-        {injecting ? "INJECTING…" : "INJECT TEST TEAM"}
+        Dev tools {expanded ? "▲" : "▼"}
       </button>
-      <button
-        type="button"
-        onClick={() => setShowMoveEditor(true)}
-        className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-      >
-        HIDDEN MOVES
-      </button>
-      <label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-        TRAINER AI
-        <select
-          value={trainerAiId}
-          onChange={(event) => handleTrainerAiChange(event.target.value)}
-          className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-        >
-          {TRAINER_AI_IMPLEMENTATIONS.map((impl) => (
-            <option key={impl.id} value={impl.id}>
-              {impl.label}
-            </option>
-          ))}
-        </select>
-      </label>
-      <div className="flex gap-3">
-        <button
-          type="button"
-          onClick={() => void handleExportState()}
-          className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-        >
-          EXPORT STATE
-        </button>
-        <button
-          type="button"
-          onClick={handleResetState}
-          className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-        >
-          RESET STATE
-        </button>
-        <button
-          type="button"
-          onClick={() => void handleImportState()}
-          className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-        >
-          IMPORT STATE
-        </button>
-      </div>
-      {status && <p className="text-xs text-slate-500">{status}</p>}
+      {expanded && (
+        <>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => gameStateEngine.regressState()}
+              className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            >
+              BACK
+            </button>
+            <button
+              type="button"
+              onClick={() => gameStateEngine.progressState()}
+              className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            >
+              NEXT
+            </button>
+          </div>
+          <button
+            type="button"
+            disabled={injecting}
+            onClick={handleInjectTestTeam}
+            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60"
+          >
+            {injecting ? "INJECTING…" : "INJECT TEST TEAM"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowMoveEditor(true)}
+            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            HIDDEN MOVES
+          </button>
+          <button
+            type="button"
+            disabled={preloadingImages}
+            onClick={() => void handlePreloadImages()}
+            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60"
+          >
+            {preloadingImages ? "CACHING IMAGES…" : "PRELOAD & CACHE IMAGES"}
+          </button>
+          <label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+            TRAINER AI
+            <select
+              value={trainerAiId}
+              onChange={(event) => handleTrainerAiChange(event.target.value)}
+              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            >
+              {TRAINER_AI_IMPLEMENTATIONS.map((impl) => (
+                <option key={impl.id} value={impl.id}>
+                  {impl.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => void handleExportState()}
+              className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            >
+              EXPORT STATE
+            </button>
+            <button
+              type="button"
+              onClick={handleResetState}
+              className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            >
+              RESET STATE
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleImportState()}
+              className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            >
+              IMPORT STATE
+            </button>
+          </div>
+          {status && <p className="text-xs text-slate-500">{status}</p>}
+        </>
+      )}
       {showMoveEditor && <MoveVisibilityEditor onClose={() => setShowMoveEditor(false)} />}
     </div>
   );
