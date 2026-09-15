@@ -1,15 +1,13 @@
 import { Dex } from "@pkmn/sim";
 import type { MoveOption } from "../battleSimulator";
 import type { StatusCode } from "../formatBattleLine";
-import { accuracyStageMultiplier, compareSpeed, estimatedStat } from "./statMath";
-import type { Combatant, FieldConditions, SpeedComparison, StatKey, TrainerAiContext, TrainerAiImplementation } from "./types";
-
-type MoveData = ReturnType<typeof Dex.moves.get>;
+import type { MoveData } from "./damageMath";
+import { computeRawDamage, drainFraction, healFraction, isImmuneViaAbility, recoilFraction } from "./damageMath";
+import { accuracyStageMultiplier, compareSpeed } from "./statMath";
+import type { Combatant, FieldConditions, SpeedComparison, TrainerAiContext, TrainerAiImplementation } from "./types";
 
 const STATUS_MOVE_BASELINE = 30;
-const NO_POWER_MOVE_BASELINE = 60;
 const JITTER_RANGE = 0.2;
-const AVERAGE_DAMAGE_ROLL = 0.925;
 const KO_BONUS = 40;
 /** Applied to any move that's down to its last PP, to discourage burning a move's final charge when a similarly-good alternative exists. */
 const LAST_PP_CONSERVATION_FACTOR = 0.7;
@@ -31,91 +29,6 @@ const STATUS_INFLICT_BONUS: Record<StatusCode, number> = {
   psn: 20,
 };
 
-const STAB_DOUBLING_ABILITIES = new Set(["Adaptability"]);
-
-/** STAB multiplier once we already know the move's type matches the attacker's — 2x for Adaptability, the usual 1.5x otherwise. */
-function abilityStabMultiplier(ability: string | undefined): number {
-  return ability !== undefined && STAB_DOUBLING_ABILITIES.has(ability) ? 2 : 1.5;
-}
-
-function abilityPowerMultiplier(ability: string | undefined, basePower: number): number {
-  return ability === "Technician" && basePower > 0 && basePower <= 60 ? 1.5 : 1;
-}
-
-function abilityOffenseStatMultiplier(ability: string | undefined, category: string): number {
-  return category === "Physical" && (ability === "Huge Power" || ability === "Pure Power") ? 2 : 1;
-}
-
-function abilityStatusAttackMultiplier(ability: string | undefined, status: StatusCode | null): number {
-  return ability === "Guts" && status !== null ? 1.5 : 1;
-}
-
-function burnMultiplier(category: string, status: StatusCode | null, ability: string | undefined): number {
-  if (category !== "Physical" || status !== "brn" || ability === "Guts") return 1;
-  return 0.5;
-}
-
-/** Common, high-value type-immunity abilities only — not exhaustive. */
-const ABILITY_TYPE_IMMUNITY: Record<string, string> = {
-  Levitate: "Ground",
-  "Flash Fire": "Fire",
-  "Water Absorb": "Water",
-  "Volt Absorb": "Electric",
-  "Storm Drain": "Water",
-  "Lightning Rod": "Electric",
-  "Motor Drive": "Electric",
-  "Sap Sipper": "Grass",
-  "Dry Skin": "Water",
-};
-
-function isImmuneViaAbility(moveType: string, ability: string | undefined): boolean {
-  return ability !== undefined && ABILITY_TYPE_IMMUNITY[ability] === moveType;
-}
-
-const WEATHER_BOOSTED_TYPE: Record<string, string> = { RainDance: "Water", SunnyDay: "Fire" };
-const WEATHER_WEAKENED_TYPE: Record<string, string> = { RainDance: "Fire", SunnyDay: "Water" };
-
-function weatherMultiplier(moveType: string, weather: string | null): number {
-  if (!weather) return 1;
-  if (WEATHER_BOOSTED_TYPE[weather] === moveType) return 1.5;
-  if (WEATHER_WEAKENED_TYPE[weather] === moveType) return 0.5;
-  return 1;
-}
-
-const TERRAIN_BOOSTED_TYPE: Record<string, string> = {
-  "Electric Terrain": "Electric",
-  "Grassy Terrain": "Grass",
-  "Psychic Terrain": "Psychic",
-};
-
-function terrainMultiplier(moveType: string, terrain: string | null): number {
-  if (!terrain) return 1;
-  if (terrain === "Misty Terrain" && moveType === "Dragon") return 0.5;
-  // Real terrain boosts only apply to a grounded attacker (Flying-type/Levitate/etc. don't get
-  // them) — grounding isn't tracked here, so this assumes the attacker is grounded.
-  return TERRAIN_BOOSTED_TYPE[terrain] === moveType ? 1.3 : 1;
-}
-
-function averageHits(multihit: number | number[] | undefined): number {
-  if (multihit === undefined) return 1;
-  if (typeof multihit === "number") return multihit;
-  const [min, max] = multihit;
-  if (min === 2 && max === 5) return 3.1; // standard 35/35/15/15 hit-count distribution
-  return (min + max) / 2;
-}
-
-function recoilFraction(moveData: MoveData): number {
-  return moveData.recoil ? moveData.recoil[0] / moveData.recoil[1] : 0;
-}
-
-function drainFraction(moveData: MoveData): number {
-  return moveData.drain ? moveData.drain[0] / moveData.drain[1] : 0;
-}
-
-function healFraction(moveData: MoveData): number {
-  return moveData.heal ? moveData.heal[0] / moveData.heal[1] : 0;
-}
-
 /** Whether a dedicated healing Status move (Recover, Roost, etc.) would just fail — already at full HP. */
 function healingMoveWouldFail(moveData: MoveData, attacker: Combatant): boolean {
   return healFraction(moveData) > 0 && attacker.currentHp >= attacker.maxHp;
@@ -131,43 +44,6 @@ function healingMoveBonus(moveData: MoveData, attacker: Combatant): number {
   const restoredPercent = (healedHp / attacker.maxHp) * 100;
   const urgency = attacker.currentHp / attacker.maxHp <= LOW_HP_THRESHOLD ? SURVIVAL_BONUS : 0;
   return restoredPercent + urgency;
-}
-
-function baseDamage(level: number, power: number, attackStat: number, defenseStat: number): number {
-  return (((2 * level) / 5 + 2) * power * (attackStat / Math.max(defenseStat, 1))) / 50 + 2;
-}
-
-/** Estimated raw damage (HP points), not a percentage — this is a scoring heuristic, not an exact Showdown damage roll. */
-function computeRawDamage(moveData: MoveData, attacker: Combatant, defender: Combatant, field: FieldConditions): number {
-  const isPhysical = moveData.category === "Physical";
-  const atkKey: StatKey = isPhysical ? "atk" : "spa";
-  const defKey: StatKey = isPhysical ? "def" : "spd";
-
-  const attackStat =
-    estimatedStat(attacker, atkKey) *
-    abilityOffenseStatMultiplier(attacker.ability, moveData.category) *
-    abilityStatusAttackMultiplier(attacker.ability, attacker.status) *
-    burnMultiplier(moveData.category, attacker.status, attacker.ability);
-  const defenseStat = estimatedStat(defender, defKey);
-
-  const power =
-    (moveData.basePower || NO_POWER_MOVE_BASELINE) *
-    abilityPowerMultiplier(attacker.ability, moveData.basePower) *
-    averageHits(moveData.multihit);
-
-  const stab = attacker.types.includes(moveData.type) ? abilityStabMultiplier(attacker.ability) : 1;
-  const typeMultiplier = isImmuneViaAbility(moveData.type, defender.ability)
-    ? 0
-    : Math.pow(2, Dex.getEffectiveness(moveData.type, defender.types));
-
-  return (
-    baseDamage(attacker.level, power, attackStat, defenseStat) *
-    stab *
-    typeMultiplier *
-    weatherMultiplier(moveData.type, field.weather) *
-    terrainMultiplier(moveData.type, field.terrain) *
-    AVERAGE_DAMAGE_ROLL
-  );
 }
 
 function priorityBonus(moveData: MoveData, speed: SpeedComparison): number {
