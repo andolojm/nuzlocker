@@ -1,6 +1,6 @@
 import { PikaLocal } from "../api/pikaLocal";
 import type { Pokemon, PokemonEvolution } from "../api/pikaserve";
-import { resolveEvolution } from "./evolution";
+import { minimumLevelFor, resolveEvolution } from "./evolution";
 
 function buildPokemon(id: number, name: string, evolution?: PokemonEvolution): Pokemon {
   return {
@@ -94,5 +94,35 @@ describe("resolveEvolution", () => {
     expect(await resolveEvolution(pokemon, zero)).toEqual({ evolvesInto: 26, evolutionLevel: 36 });
     expect(await resolveEvolution(pokemon, almostOne)).toEqual({ evolvesInto: 26, evolutionLevel: 43 });
     expect(pokemonSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("minimumLevelFor", () => {
+  it("returns 0 for a pokemon with no evolution field at all", () => {
+    expect(minimumLevelFor(buildPokemon(1, "Bulbasaur"))).toBe(0);
+  });
+
+  it("returns 0 for a base-form pokemon with only a next evolution", () => {
+    const pokemon = buildPokemon(1, "Bulbasaur", { next: [["2", "Level 16"]] });
+
+    expect(minimumLevelFor(pokemon)).toBe(0);
+  });
+
+  it("returns the listed level for a level-gated prior evolution", () => {
+    const pokemon = buildPokemon(394, "Prinplup", { prev: ["393", "Level 16"], next: [["395", "Level 36"]] });
+
+    expect(minimumLevelFor(pokemon)).toBe(16);
+  });
+
+  it("returns the listed level even with a trailing qualifier", () => {
+    const pokemon = buildPokemon(416, "Vespiquen", { prev: ["415", "Level 21, Female"] });
+
+    expect(minimumLevelFor(pokemon)).toBe(21);
+  });
+
+  it("returns 0 for a prior evolution that isn't level-gated (stone/trade/friendship)", () => {
+    const pokemon = buildPokemon(208, "Steelix", { prev: ["95", "trade holding Metal Coat"] });
+
+    expect(minimumLevelFor(pokemon)).toBe(0);
   });
 });

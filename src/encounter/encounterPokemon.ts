@@ -1,6 +1,6 @@
 import { PikaLocal } from "../api/pikaLocal";
 import type { Move } from "../api/pikaserve";
-import { resolveEvolution } from "../engine/evolution";
+import { minimumLevelFor, resolveEvolution } from "../engine/evolution";
 import type { TeamPokemon } from "../engine/gameStateEngine";
 
 /** "Near" the requested strength means within this fraction of it, on either side. */
@@ -26,7 +26,12 @@ export async function encounterPokemon(
   let pokemon;
   do {
     pokemon = await PikaLocal.getRandomPokemon(minBst, maxBst);
-  } while (avoidDuplicates && caughtIds.has(pokemon.id));
+  } while (
+    (avoidDuplicates && caughtIds.has(pokemon.id)) ||
+    // Otherwise a stage's fixed level can hand out an already-evolved Pokemon (e.g. a level 12
+    // Prinplup, which can't exist below the level 16 its Piplup evolution requires).
+    minimumLevelFor(pokemon) > level
+  );
 
   const [moves, ability] = await Promise.all([rollMoveset(level), PikaLocal.getRandomAbility()]);
   const evolution = await resolveEvolution(pokemon);

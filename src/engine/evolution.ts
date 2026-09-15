@@ -56,3 +56,17 @@ export async function resolveEvolution(
   const range = targetEvolvesFurther ? TWO_EVOLUTION_FIRST_RANGE : ONE_EVOLUTION_RANGE;
   return { evolvesInto, evolutionLevel: randomInRange(range, random) };
 }
+
+/**
+ * The lowest level `pokemon` could legitimately exist at, per a level-based `evolution.prev`
+ * condition — 0 if it has no prior evolution, or its prior evolution isn't level-gated (stone,
+ * trade, friendship, ...). Used to keep wild encounters from handing out an already-evolved
+ * Pokemon below the level it could only have reached by evolving.
+ */
+export function minimumLevelFor(pokemon: Pick<Pokemon, "evolution">): number {
+  const prev = pokemon.evolution?.prev;
+  if (!prev) return 0;
+
+  const match = LEVEL_CONDITION.exec(prev[1]);
+  return match ? Number(match[1]) : 0;
+}

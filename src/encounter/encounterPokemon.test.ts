@@ -193,6 +193,40 @@ describe("encounterPokemon", () => {
     expect(result.moves.some((move) => move.category !== "Status")).toBe(true);
   });
 
+  it("re-rolls a species that couldn't exist yet at the given level (e.g. Prinplup below level 16)", async () => {
+    const prinplup = buildPokemon({
+      id: 394,
+      name: { english: "Prinplup" },
+      evolution: { prev: ["393", "Level 16"], next: [["395", "Level 36"]] },
+    });
+    const bulbasaur = buildPokemon({ id: 1, name: { english: "Bulbasaur" } });
+    const pokemonSpy = jest
+      .spyOn(PikaLocal, "getRandomPokemon")
+      .mockResolvedValueOnce(prinplup)
+      .mockResolvedValueOnce(bulbasaur);
+    jest.spyOn(PikaLocal, "getRandomMove").mockResolvedValue(buildMove());
+
+    const result = await encounterPokemon(1, [], undefined, 12);
+
+    expect(result.name.english).toBe("Bulbasaur");
+    expect(pokemonSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it("allows a species with a level-gated prior evolution once the level is high enough", async () => {
+    const prinplup = buildPokemon({
+      id: 394,
+      name: { english: "Prinplup" },
+      evolution: { prev: ["393", "Level 16"], next: [["395", "Level 36"]] },
+    });
+    const pokemonSpy = jest.spyOn(PikaLocal, "getRandomPokemon").mockResolvedValue(prinplup);
+    jest.spyOn(PikaLocal, "getRandomMove").mockResolvedValue(buildMove());
+
+    const result = await encounterPokemon(1, [], undefined, 16);
+
+    expect(result.name.english).toBe("Prinplup");
+    expect(pokemonSpy).toHaveBeenCalledTimes(1);
+  });
+
   it("stops re-rolling duplicates once caughtPokemon has 500 or more entries", async () => {
     const bulbasaur = buildPokemon({ id: 1, name: { english: "Bulbasaur" } });
     const pokemonSpy = jest.spyOn(PikaLocal, "getRandomPokemon").mockResolvedValue(bulbasaur);
