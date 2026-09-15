@@ -223,7 +223,7 @@ export function TeamChanger({ alivePokemon, levelCap, onSubmit, submitLabel }: T
         </div>
       </div>
 
-      <div className="mt-4">
+      <div className="mt-4 pb-24">
         <button
           type="button"
           disabled={active.length === 0}
@@ -242,7 +242,8 @@ export function TeamChanger({ alivePokemon, levelCap, onSubmit, submitLabel }: T
               onSubmit(active);
             }
           }}
-          className="w-full rounded-md bg-slate-800 px-6 py-2 text-3xl font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-400"
+          style={{ position: "fixed", bottom: "5%", left: "5%", width: "90%" }}
+          className="rounded-md bg-slate-500 px-6 py-2 text-3xl font-bold text-white shadow-lg disabled:cursor-not-allowed disabled:bg-slate-400"
         >
           {submitLabel}
         </button>
