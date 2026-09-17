@@ -1,3 +1,4 @@
+import type { SpeedComparison } from "../../battle/trainerAi";
 import { BallIcon } from "./BallIcon";
 import { useGridSelection } from "./useGridSelection";
 
@@ -10,6 +11,13 @@ function formatCatchChance(probability: number): string {
   return `${Math.max(rounded, 1)}%`;
 }
 
+/** Corner-badge glyph/color/label for each speed comparison outcome, shown on the FIGHT button. */
+const SPEED_BADGES: Record<SpeedComparison, { symbol: string; className: string; label: string }> = {
+  win: { symbol: "▲", className: "bg-emerald-500", label: "you outspeed" },
+  lose: { symbol: "▼", className: "bg-rose-500", label: "you are outsped" },
+  range: { symbol: "?", className: "bg-slate-500", label: "speed unclear" },
+};
+
 export type BattleAction = (typeof ACTIONS)[number];
 
 export interface BattleMenuProps {
@@ -20,6 +28,8 @@ export interface BattleMenuProps {
   ballBonus?: number;
   /** Chance (0-1) that a ball thrown right now would catch the opponent; shown as a percentage next to the ball icon when set. */
   catchProbability?: number;
+  /** Whether the player's active Pokemon out-speeds the opponent's; shown as a corner badge on the FIGHT button when set. */
+  speedComparison?: SpeedComparison;
   /** `openedViaKeyboard` is true when the action was chosen with Space/Enter rather than a click. */
   onSelect?: (action: BattleAction, openedViaKeyboard: boolean) => void;
 }
@@ -29,6 +39,7 @@ export function BattleMenu({
   active = true,
   ballBonus,
   catchProbability,
+  speedComparison,
   onSelect,
 }: BattleMenuProps) {
   const { selected, setSelected } = useGridSelection({
@@ -49,6 +60,7 @@ export function BattleMenu({
         const disabled = disabledActions.includes(action);
         const showsBallIcon = action === "CATCH" && ballBonus !== undefined;
         const chanceLabel = showsBallIcon && catchProbability !== undefined ? formatCatchChance(catchProbability) : undefined;
+        const speedBadge = action === "FIGHT" && speedComparison ? SPEED_BADGES[speedComparison] : undefined;
 
         return (
           <button
@@ -62,8 +74,14 @@ export function BattleMenu({
               setSelected(index);
               onSelect?.(action, false);
             }}
-            aria-label={showsBallIcon ? `CATCH${chanceLabel ? `, ${chanceLabel} chance` : ""}` : undefined}
-            className={`flex items-center justify-center rounded-md text-sm font-bold ${
+            aria-label={
+              showsBallIcon
+                ? `CATCH${chanceLabel ? `, ${chanceLabel} chance` : ""}`
+                : speedBadge
+                  ? `FIGHT, ${speedBadge.label}`
+                  : undefined
+            }
+            className={`relative flex items-center justify-center rounded-md text-sm font-bold ${
               showsBallIcon ? "border-2 border-green-500" : ""
             } ${
               disabled
@@ -80,6 +98,14 @@ export function BattleMenu({
               </span>
             ) : (
               action
+            )}
+            {speedBadge && (
+              <span
+                aria-hidden="true"
+                className={`absolute -right-1 -bottom-1 flex h-4 w-4 items-center justify-center rounded-full text-[9px] leading-none text-white shadow ${speedBadge.className}`}
+              >
+                {speedBadge.symbol}
+              </span>
             )}
           </button>
         );

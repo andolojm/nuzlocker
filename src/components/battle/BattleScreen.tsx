@@ -1,6 +1,8 @@
 import { useState } from "react";
 import type { Move } from "../../api/pikaserve";
 import type { StatusCode } from "../../battle/formatBattleLine";
+import type { Combatant } from "../../battle/trainerAi";
+import { compareSpeed, toStatTable } from "../../battle/trainerAi";
 import type { BattlePhase, Boosts, HpValue } from "../../battle/useBattleController";
 import { catchProbability, statusCatchBonus } from "../../encounter/catchPokemon";
 import type { OwnedTM, TeamPokemon } from "../../engine/gameStateEngine";
@@ -90,6 +92,29 @@ export function BattleScreen({
         })
       : undefined;
 
+  // Mirrors the trainer AI's own compareSpeed usage, just from the player's side: the player's own
+  // Pokemon has known IVs, while the opponent's are unknown and treated as a min..max range.
+  const playerCombatant: Combatant = {
+    types: playerPokemon.type,
+    level: playerPokemon.level,
+    baseStats: toStatTable(playerPokemon.base),
+    ivs: toStatTable(playerPokemon.ivs),
+    boosts: playerBoosts,
+    currentHp: playerHp.current,
+    maxHp: playerHp.max,
+    status: playerStatus,
+  };
+  const opponentCombatant: Combatant = {
+    types: opponentPokemon.type,
+    level: opponentPokemon.level,
+    baseStats: toStatTable(opponentPokemon.base),
+    boosts: opponentBoosts,
+    currentHp: opponentHp.current,
+    maxHp: opponentHp.max,
+    status: opponentStatus,
+  };
+  const speedComparison = compareSpeed(playerCombatant, opponentCombatant);
+
   function handleMainMenuSelect(action: BattleAction, openedViaKeyboard: boolean) {
     if (action === "FIGHT") {
       setOpenMenu("fight");
@@ -175,6 +200,7 @@ export function BattleScreen({
               active
               ballBonus={stageType === StageType.Catch ? ballBonus : undefined}
               catchProbability={catchChance}
+              speedComparison={speedComparison}
               onSelect={handleMainMenuSelect}
             />
           </div>
@@ -204,7 +230,8 @@ export function BattleScreen({
                 disabledActions={disabledActions}
                 active={false}
                 ballBonus={stageType === StageType.Catch ? ballBonus : undefined}
-              catchProbability={catchChance}
+                catchProbability={catchChance}
+                speedComparison={speedComparison}
                 onSelect={handleMainMenuSelect}
               />
             </div>
