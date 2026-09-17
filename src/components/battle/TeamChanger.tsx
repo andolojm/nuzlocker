@@ -128,6 +128,11 @@ export function TeamChanger({ alivePokemon, levelCap, onSubmit, submitLabel }: T
   }
 
   const atCapacity = active.length >= MAX_ACTIVE_TEAM_SIZE;
+  // Nudge the player toward the submit button once there's nothing left to level up on the active
+  // party and the party itself is settled (full, or nothing left in Inactive to add).
+  const noActiveLevelUps = active.every((pokemon) => pokemon.level >= levelCap);
+  const partySettled = atCapacity || inactive.length === 0;
+  const highlightSubmit = active.length > 0 && noActiveLevelUps && partySettled;
 
   return (
     <div className="rounded-xl border-4 border-slate-800 bg-slate-100 p-4 shadow-xl">
@@ -158,7 +163,7 @@ export function TeamChanger({ alivePokemon, levelCap, onSubmit, submitLabel }: T
                   <button
                     type="button"
                     onClick={() => void handleLevelUp(pokemon)}
-                    className="rounded-md bg-slate-500 px-1.5 py-1 text-[10px] font-bold text-white"
+                    className="rounded-md bg-emerald-600 px-1.5 py-1 text-[10px] font-bold text-white"
                   >
                     LVL UP
                   </button>
@@ -212,7 +217,7 @@ export function TeamChanger({ alivePokemon, levelCap, onSubmit, submitLabel }: T
                   <button
                     type="button"
                     onClick={() => void handleLevelUp(pokemon)}
-                    className="rounded-md bg-slate-500 px-1.5 py-1 text-[10px] font-bold text-white"
+                    className="rounded-md bg-emerald-600 px-1.5 py-1 text-[10px] font-bold text-white"
                   >
                     LVL UP
                   </button>
@@ -243,7 +248,9 @@ export function TeamChanger({ alivePokemon, levelCap, onSubmit, submitLabel }: T
             }
           }}
           style={{ position: "fixed", bottom: "5%", left: "5%", width: "90%" }}
-          className="rounded-md bg-slate-500 px-6 py-2 text-3xl font-bold text-white shadow-lg disabled:cursor-not-allowed disabled:bg-slate-400"
+          className={`rounded-md px-6 py-2 text-3xl font-bold text-white shadow-lg disabled:cursor-not-allowed disabled:bg-slate-400 ${
+            highlightSubmit ? "bg-emerald-600" : "bg-slate-500"
+          }`}
         >
           {submitLabel}
         </button>
