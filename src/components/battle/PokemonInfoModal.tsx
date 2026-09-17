@@ -3,6 +3,7 @@ import type { AlivePokemon, OwnedTM, TeamPokemon } from "../../engine/gameStateE
 import { gameStateEngine } from "../../engine/gameStateEngine";
 import { useGameState } from "../../engine/useGameState";
 import { AbilityLine } from "./AbilityLine";
+import { EvolutionLine } from "./EvolutionLine";
 import { MoveTile } from "./MoveTile";
 import { PokemonStatsList } from "./PokemonStatsList";
 import { TMSelectModal } from "./TMSelectModal";
@@ -26,9 +27,9 @@ export interface PokemonInfoModalProps {
    */
   onPokemonUpdated?: (updated: AlivePokemon) => void;
   /**
-   * "opponent" hides information the player shouldn't have about an enemy Pokemon: exact IVs are
-   * censored and the move list shows only the moves it has actually used so far (`revealedMoves`),
-   * as plain text, instead of its full moveset.
+   * "opponent" hides information the player shouldn't have about an enemy Pokemon: exact IVs and
+   * ability are censored, and the move list shows only the moves it has actually used so far
+   * (`revealedMoves`) instead of its full moveset.
    */
   variant?: "self" | "opponent";
   /** Display names of the opponent's moves seen so far. Only read when `variant` is "opponent". */
@@ -68,6 +69,11 @@ export function PokemonInfoModal({
     displayPokemon.name.chinese && `Chinese: ${displayPokemon.name.chinese}`,
     displayPokemon.name.french && `French: ${displayPokemon.name.french}`,
   ].filter((line): line is string => Boolean(line));
+
+  // Opponents only ever show moves actually seen in battle (revealedMoves) — never their full moveset.
+  const shownMoves = isOpponent
+    ? displayPokemon.moves.filter((move) => revealedMoves.includes(move.name.english))
+    : displayPokemon.moves;
 
   function handleSelectTM(tm: OwnedTM) {
     if (teachMoveIndex === null) return;
@@ -123,36 +129,34 @@ export function PokemonInfoModal({
             )}
           </div>
 
+          {displayPokemon.evolvesInto !== undefined && (
+            <div className="mt-1">
+              <EvolutionLine evolvesInto={displayPokemon.evolvesInto} evolutionLevel={displayPokemon.evolutionLevel} />
+            </div>
+          )}
+
           <h3 className="mt-2 font-semibold">Moves</h3>
-          {isOpponent ? (
-            revealedMoves.length > 0 ? (
-              <ul className="list-inside list-disc">
-                {revealedMoves.map((move) => (
-                  <li key={move}>{move}</li>
-                ))}
-              </ul>
-            ) : (
-              <p className="italic text-slate-600">No moves seen yet.</p>
-            )
+          {shownMoves.length === 0 ? (
+            <p className="italic text-slate-600">No moves seen yet.</p>
           ) : (
-          <div className="grid grid-cols-1 gap-1.5 min-[600px]:grid-cols-2">
-            {displayPokemon.moves.map((move, index) => (
-              <div key={index} className="flex items-stretch gap-1">
-                <div className="min-w-0 flex-1">
-                  <MoveTile move={move} attackerTypes={displayPokemon.type} />
+            <div className="grid grid-cols-1 gap-1.5 min-[600px]:grid-cols-2">
+              {shownMoves.map((move, index) => (
+                <div key={move.id} className="flex items-stretch gap-1">
+                  <div className="min-w-0 flex-1">
+                    <MoveTile move={move} attackerTypes={displayPokemon.type} />
+                  </div>
+                  {allowTeachMove && (
+                    <button
+                      type="button"
+                      onClick={() => setTeachMoveIndex(index)}
+                      className="shrink-0 rounded bg-slate-700 px-1.5 py-0.5 text-[10px] font-bold text-white"
+                    >
+                      TM
+                    </button>
+                  )}
                 </div>
-                {allowTeachMove && (
-                  <button
-                    type="button"
-                    onClick={() => setTeachMoveIndex(index)}
-                    className="shrink-0 rounded bg-slate-700 px-1.5 py-0.5 text-[10px] font-bold text-white"
-                  >
-                    TM
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
           )}
 
           <div className="mt-3 border-t border-slate-200 pt-2 text-xs text-slate-600 min-[600px]:text-sm">
