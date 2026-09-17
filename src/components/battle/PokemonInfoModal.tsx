@@ -28,9 +28,9 @@ export interface PokemonInfoModalProps {
    */
   onPokemonUpdated?: (updated: AlivePokemon) => void;
   /**
-   * "opponent" hides information the player shouldn't have about an enemy Pokemon: exact IVs and
-   * ability are censored, and the move list shows only the moves it has actually used so far
-   * (`revealedMoves`) instead of its full moveset.
+   * "opponent" hides information the player shouldn't have about an enemy Pokemon: exact IVs,
+   * ability, and evolution info are all censored, and the move list shows only the moves it has
+   * actually used so far (`revealedMoves`) instead of its full moveset.
    */
   variant?: "self" | "opponent";
   /** Display names of the opponent's moves seen so far. Only read when `variant` is "opponent". */
@@ -135,7 +135,7 @@ export function PokemonInfoModal({
             )}
           </div>
 
-          {displayPokemon.evolvesInto !== undefined && (
+          {!isOpponent && displayPokemon.evolvesInto !== undefined && (
             <div className="mt-1">
               <EvolutionLine evolvesInto={displayPokemon.evolvesInto} evolutionLevel={displayPokemon.evolutionLevel} />
             </div>
