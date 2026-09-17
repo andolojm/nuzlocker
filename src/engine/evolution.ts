@@ -57,6 +57,46 @@ export async function resolveEvolution(
   return { evolvesInto, evolutionLevel: randomInRange(range, random) };
 }
 
+export interface EvolutionChainEntry {
+  pokemon: Pokemon;
+  /** Level this stage evolves into the next one at, or undefined if it's the final stage. */
+  evolutionLevel?: number;
+}
+
+/**
+ * Resolves the full evolution family `pokemon` belongs to, from its base stage through its final
+ * stage (inclusive of `pokemon` itself, wherever it falls in that chain).
+ *
+ * The step out of `pokemon` itself prefers `knownNext` — its own already-resolved evolvesInto/
+ * evolutionLevel, when it has one — so the level shown matches what will actually happen when this
+ * individual evolves, rather than a fresh (and possibly different) roll. Every other step in the
+ * chain is resolved fresh, since no individual has reached those stages yet to have rolled one.
+ */
+export async function resolveEvolutionChain(
+  pokemon: Pokemon,
+  knownNext?: EvolutionInfo,
+  random: () => number = Math.random,
+): Promise<EvolutionChainEntry[]> {
+  let base = pokemon;
+  while (base.evolution?.prev) {
+    base = await PikaLocal.getPokemon(Number(base.evolution.prev[0]));
+  }
+
+  const chain: EvolutionChainEntry[] = [];
+  let current = base;
+  while (true) {
+    const evolution = current.id === pokemon.id && knownNext ? knownNext : await resolveEvolution(current, random);
+
+    if (!evolution) {
+      chain.push({ pokemon: current });
+      return chain;
+    }
+
+    chain.push({ pokemon: current, evolutionLevel: evolution.evolutionLevel });
+    current = await PikaLocal.getPokemon(evolution.evolvesInto);
+  }
+}
+
 /**
  * The lowest level `pokemon` could legitimately exist at, per a level-based `evolution.prev`
  * condition — 0 if it has no prior evolution, or its prior evolution isn't level-gated (stone,

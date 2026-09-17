@@ -3,6 +3,7 @@ import type { AlivePokemon, OwnedTM, TeamPokemon } from "../../engine/gameStateE
 import { gameStateEngine } from "../../engine/gameStateEngine";
 import { useGameState } from "../../engine/useGameState";
 import { AbilityLine } from "./AbilityLine";
+import { EvolutionChain } from "./EvolutionChain";
 import { EvolutionLine } from "./EvolutionLine";
 import { MoveTile } from "./MoveTile";
 import { PokemonStatsList } from "./PokemonStatsList";
@@ -74,6 +75,11 @@ export function PokemonInfoModal({
   const shownMoves = isOpponent
     ? displayPokemon.moves.filter((move) => revealedMoves.includes(move.name.english))
     : displayPokemon.moves;
+
+  const knownNext =
+    displayPokemon.evolvesInto !== undefined && displayPokemon.evolutionLevel !== undefined
+      ? { evolvesInto: displayPokemon.evolvesInto, evolutionLevel: displayPokemon.evolutionLevel }
+      : undefined;
 
   function handleSelectTM(tm: OwnedTM) {
     if (teachMoveIndex === null) return;
@@ -158,6 +164,8 @@ export function PokemonInfoModal({
               ))}
             </div>
           )}
+
+          {!isOpponent && <EvolutionChain pokemon={displayPokemon} knownNext={knownNext} />}
 
           <div className="mt-3 border-t border-slate-200 pt-2 text-xs text-slate-600 min-[600px]:text-sm">
             {translations.map((line) => (

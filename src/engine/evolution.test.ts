@@ -1,6 +1,6 @@
 import { PikaLocal } from "../api/pikaLocal";
 import type { Pokemon, PokemonEvolution } from "../api/pikaserve";
-import { minimumLevelFor, resolveEvolution } from "./evolution";
+import { minimumLevelFor, resolveEvolution, resolveEvolutionChain } from "./evolution";
 
 function buildPokemon(id: number, name: string, evolution?: PokemonEvolution): Pokemon {
   return {
@@ -94,6 +94,70 @@ describe("resolveEvolution", () => {
     expect(await resolveEvolution(pokemon, zero)).toEqual({ evolvesInto: 26, evolutionLevel: 36 });
     expect(await resolveEvolution(pokemon, almostOne)).toEqual({ evolvesInto: 26, evolutionLevel: 43 });
     expect(pokemonSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("resolveEvolutionChain", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  const bulbasaur = buildPokemon(1, "Bulbasaur", { next: [["2", "Level 16"]] });
+  const ivysaur = buildPokemon(2, "Ivysaur", { prev: ["1", "Level 16"], next: [["3", "Level 32"]] });
+  const venusaur = buildPokemon(3, "Venusaur", { prev: ["2", "Level 32"] });
+
+  function mockDex(...pokemon: Pokemon[]) {
+    const byId = new Map(pokemon.map((entry) => [entry.id, entry]));
+    jest.spyOn(PikaLocal, "getPokemon").mockImplementation(async (nameOrId) => {
+      const found = byId.get(Number(nameOrId));
+      if (!found) throw new Error(`no mock registered for id ${nameOrId}`);
+      return found;
+    });
+  }
+
+  it("returns a single entry for a pokemon with no evolution family", async () => {
+    const pokemon = buildPokemon(132, "Ditto");
+
+    expect(await resolveEvolutionChain(pokemon)).toEqual([{ pokemon }]);
+  });
+
+  it("returns the full chain, base to final, when starting from the base stage", async () => {
+    mockDex(bulbasaur, ivysaur, venusaur);
+
+    expect(await resolveEvolutionChain(bulbasaur)).toEqual([
+      { pokemon: bulbasaur, evolutionLevel: 16 },
+      { pokemon: ivysaur, evolutionLevel: 32 },
+      { pokemon: venusaur },
+    ]);
+  });
+
+  it("walks backward to the base when starting mid-chain", async () => {
+    mockDex(bulbasaur, ivysaur, venusaur);
+
+    expect(await resolveEvolutionChain(ivysaur)).toEqual([
+      { pokemon: bulbasaur, evolutionLevel: 16 },
+      { pokemon: ivysaur, evolutionLevel: 32 },
+      { pokemon: venusaur },
+    ]);
+  });
+
+  it("walks backward to the base when starting from the final stage", async () => {
+    mockDex(bulbasaur, ivysaur, venusaur);
+
+    expect(await resolveEvolutionChain(venusaur)).toEqual([
+      { pokemon: bulbasaur, evolutionLevel: 16 },
+      { pokemon: ivysaur, evolutionLevel: 32 },
+      { pokemon: venusaur },
+    ]);
+  });
+
+  it("uses knownNext for the passed-in pokemon's own step instead of re-resolving it", async () => {
+    mockDex(bulbasaur, ivysaur, venusaur);
+
+    const chain = await resolveEvolutionChain(bulbasaur, { evolvesInto: 2, evolutionLevel: 12 });
+
+    expect(chain[0]).toEqual({ pokemon: bulbasaur, evolutionLevel: 12 });
+    expect(chain[1]).toEqual({ pokemon: ivysaur, evolutionLevel: 32 });
   });
 });
 
