@@ -4,7 +4,6 @@ import { gameStateEngine } from "../../engine/gameStateEngine";
 import { useGameState } from "../../engine/useGameState";
 import { AbilityLine } from "./AbilityLine";
 import { EvolutionChain } from "./EvolutionChain";
-import { EvolutionLine } from "./EvolutionLine";
 import { MoveTile } from "./MoveTile";
 import { PokemonStatsList } from "./PokemonStatsList";
 import { TMSelectModal } from "./TMSelectModal";
@@ -134,12 +133,6 @@ export function PokemonInfoModal({
               <AbilityLine ability={displayPokemon.ability} />
             )}
           </div>
-
-          {!isOpponent && displayPokemon.evolvesInto !== undefined && (
-            <div className="mt-1">
-              <EvolutionLine evolvesInto={displayPokemon.evolvesInto} evolutionLevel={displayPokemon.evolutionLevel} />
-            </div>
-          )}
 
           <h3 className="mt-2 font-semibold">Moves</h3>
           {shownMoves.length === 0 ? (
