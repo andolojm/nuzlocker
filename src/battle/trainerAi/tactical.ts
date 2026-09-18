@@ -22,8 +22,20 @@ import type { Combatant, FieldConditions, SpeedComparison, TrainerAiContext, Tra
  * mediocre attack.
  */
 
-/** Score floor for a Status move whose effect this AI doesn't model (Protect, Substitute, Trick Room, ...) — low enough to be a last resort, non-zero so it isn't unreachable. */
+/** Ceiling on what a Status move whose effect this AI doesn't model (Protect, Trick Room, ...) can be worth. */
 const UNMODELED_STATUS_VALUE = 6;
+/** Floor beneath that, so an unmodeled Status move still beats a move that does literally nothing (every attack immune). */
+const LAST_RESORT_VALUE = 0.5;
+/** Fraction of the best available attack an unmodeled Status move may be worth. Below 1 so that spending a turn on a move we cannot price never beats simply attacking — the flat floor is what let Substitute loop until it fainted. */
+const UNMODELED_ATTACK_SHARE = 0.9;
+/** Self-inflicted HP cost, as a fraction of max HP, of moves that pay HP for their effect. */
+const SELF_HP_COST: Record<string, number> = {
+  substitute: 0.25,
+  bellydrum: 0.5,
+  curse: 0.5, // Ghost-type Curse only; see selfHpCostFraction
+  clangoroussoul: 0.33,
+  filletaway: 0.5,
+};
 /** A status or debuff needs turns on the field to pay off; it's only worth full value once the matchup is expected to last this many turns. */
 const LONGEVITY_HORIZON = 3;
 /** Most turns of payoff a setup move is credited with — a boost that only pays off far in the future is speculative. */
@@ -41,6 +53,8 @@ const MAX_ESTIMATED_TURNS = 6;
 const LOW_ROLL_RATIO = 0.85 / 0.925;
 const GUARANTEED_KO_BONUS = 45;
 const LIKELY_KO_BONUS = 18;
+/** Score for a move known to fail outright. Below zero so that any other option — even a useless one — outranks a guaranteed wasted turn. */
+const KNOWN_FAILURE_SCORE = -1;
 const JITTER_RANGE = 0.1;
 /** Applied to any move down to its last PP, to discourage burning a move's final charge when a similarly-good alternative exists. */
 const LAST_PP_CONSERVATION_FACTOR = 0.7;
@@ -170,6 +184,22 @@ function isStatusBlocked(status: StatusCode, defender: Combatant, field: FieldCo
   return false;
 }
 
+/** Fraction of its own max HP the attacker pays to use this move. Curse only costs HP for a Ghost-type user; for anyone else it is an ordinary boosting move. */
+function selfHpCostFraction(moveData: MoveData, attacker: Combatant): number {
+  const cost = SELF_HP_COST[moveData.id] ?? 0;
+  if (moveData.id === "curse" && !attacker.types.includes("Ghost")) return 0;
+  return cost;
+}
+
+/**
+ * What a Status move with no modeled effect may be worth. Capped below the best attack available, so
+ * a move this AI cannot price never beats simply attacking — an absolute floor is what let Substitute
+ * outscore four weak-but-real attacks and loop until the user fainted.
+ */
+function unmodeledStatusValue(bestDamagePercent: number): number {
+  return Math.min(UNMODELED_STATUS_VALUE, Math.max(LAST_RESORT_VALUE, bestDamagePercent * UNMODELED_ATTACK_SHARE));
+}
+
 /** Powder and spore moves (Spore, Sleep Powder, Stun Spore, ...) do nothing to Grass-types or Overcoat. */
 function isPowderBlocked(moveData: MoveData, defender: Combatant): boolean {
   if (!moveData.flags?.powder) return false;
@@ -237,6 +267,10 @@ function statusMoveWouldFail(
   if (field.weather !== null && (WEATHER_MOVE_RESULT[moveData.id]?.includes(field.weather) ?? false)) return true;
   if (field.terrain !== null && TERRAIN_MOVE_RESULT[moveData.id] === field.terrain) return true;
   if (healFraction(moveData) > 0 && attacker.currentHp >= attacker.maxHp) return true;
+
+  // Substitute and friends simply fail without the HP to pay for them (Substitute needs more than 1/4 max).
+  const hpCost = selfHpCostFraction(moveData, attacker);
+  if (hpCost > 0 && attacker.currentHp <= hpCost * attacker.maxHp) return true;
 
   if (moveData.status) {
     if (defender.status) return true;
@@ -458,12 +492,16 @@ function scoreStatusMove(
   horizon: Horizon,
   bestDamagePercent: number,
 ): number {
-  if (statusMoveWouldFail(moveData, attacker, defender, field)) return 0;
+  if (statusMoveWouldFail(moveData, attacker, defender, field)) return KNOWN_FAILURE_SCORE;
 
   let value = 0;
   if (moveData.status) value += statusInflictValue(moveData.status as StatusCode, defender, speed, horizon);
   if (moveData.volatileStatus) {
-    value += (VOLATILE_VALUE[moveData.volatileStatus] ?? UNMODELED_STATUS_VALUE) * horizon.longevity;
+    // A Substitute soaks exactly the HP it costs, so its real worth is the free turns behind it —
+    // which this AI has no way to exploit. It lands in the unmodeled bucket and is then charged its
+    // HP cost below, leaving it net-negative: correct for an AI that cannot cash a sub in.
+    const known = VOLATILE_VALUE[moveData.volatileStatus];
+    value += (known ?? unmodeledStatusValue(bestDamagePercent)) * horizon.longevity;
   }
   if (moveData.boosts) {
     const boosts = moveData.boosts as BoostTable;
@@ -475,7 +513,11 @@ function scoreStatusMove(
   value += healingValue(moveData, attacker, horizon);
   value += fieldMoveValue(moveData, field);
 
-  if (value <= 0) value = UNMODELED_STATUS_VALUE;
+  if (value <= 0) value = unmodeledStatusValue(bestDamagePercent);
+
+  // Charged after the floor, so a move whose only modeled effect is its price can go net-negative:
+  // a Substitute that soaks less than the quarter of max HP it costs is worse than doing nothing.
+  value -= selfHpCostFraction(moveData, attacker) * 100;
 
   // Status moves miss too: the "basic" AI never charges Hypnosis or Will-O-Wisp for their accuracy.
   return value * moveAccuracy(moveData, attacker, defender);
@@ -585,7 +627,7 @@ function scoreDamagingMove(
 ): DamageAssessment {
   const immune =
     !Dex.getImmunity(moveData.type, defender.types) || isImmuneViaAbility(moveData.type, defender.ability);
-  if (immune) return { score: 0, expectedPercent: 0, guaranteedKo: false };
+  if (immune) return { score: KNOWN_FAILURE_SCORE, expectedPercent: 0, guaranteedKo: false };
 
   const fixed = fixedDamage(moveData, attacker);
   const rawDamage = fixed ?? Math.max(computeRawDamage(moveData, attacker, defender, field), 0);

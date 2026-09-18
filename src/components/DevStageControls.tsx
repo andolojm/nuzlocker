@@ -45,7 +45,7 @@ export function DevStageControls({ onReset }: DevStageControlsProps) {
     setPreloadingImages(true);
     try {
       await preloadAllPokemonImages((progress) => {
-        setStatus(`Caching Pokemon images… ${progress.loaded}/${progress.total}`);
+        setStatus(`Preloaded ${progress.loaded} of ${progress.total} images`);
       });
       setStatus("Cached all Pokemon images for offline use.");
     } catch (error) {

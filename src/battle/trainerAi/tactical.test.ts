@@ -311,4 +311,62 @@ describe("tacticalTrainerAi", () => {
       expect(choice).toBe("move Toxic");
     });
   });
+
+  describe("moves that cost HP", () => {
+    it("does not use Substitute when it has any real attack, even a weak one", () => {
+      const choice = chooseTrainerMove({
+        request: buildRequest({
+          moves: [buildMoveOption("Substitute"), buildMoveOption("Tackle"), buildMoveOption("Quick Attack")],
+        }),
+        attacker: buildCombatant(),
+        defender: buildCombatant({ types: ["Rock", "Steel"], maxHp: 400, currentHp: 400 }),
+        field: buildField(),
+        rng: noJitter,
+      });
+
+      expect(choice).toBe("move Quick Attack");
+    });
+
+    it("does not use Substitute below the quarter of max HP it costs", () => {
+      const choice = chooseTrainerMove({
+        request: buildRequest({ moves: [buildMoveOption("Substitute"), buildMoveOption("Tackle")] }),
+        attacker: buildCombatant({ currentHp: 30 }),
+        defender: buildCombatant(),
+        field: buildField(),
+        rng: noJitter,
+      });
+
+      expect(choice).toBe("move Tackle");
+    });
+
+    it("does not Substitute itself to death over repeated turns", () => {
+      const attacker = buildCombatant();
+      const request = buildRequest({ moves: [buildMoveOption("Substitute"), buildMoveOption("Tackle")] });
+      const defender = buildCombatant({ types: ["Rock", "Steel"], maxHp: 400, currentHp: 400 });
+
+      // Replay the same decision, charging Substitute its HP each time it is picked.
+      let substitutes = 0;
+      for (let turn = 0; turn < 8; turn++) {
+        const choice = chooseTrainerMove({ request, attacker, defender, field: buildField(), rng: noJitter });
+        if (choice !== "move Substitute") break;
+        substitutes++;
+        attacker.currentHp -= Math.floor(attacker.maxHp / 4);
+      }
+
+      expect(substitutes).toBe(0);
+      expect(attacker.currentHp).toBe(attacker.maxHp);
+    });
+
+    it("does not use Belly Drum without the HP to pay for it", () => {
+      const choice = chooseTrainerMove({
+        request: buildRequest({ moves: [buildMoveOption("Belly Drum"), buildMoveOption("Tackle")] }),
+        attacker: buildCombatant({ currentHp: 70 }),
+        defender: buildCombatant({ baseStats: { ...EVEN_STATS, atk: 20, spa: 20 } }),
+        field: buildField(),
+        rng: noJitter,
+      });
+
+      expect(choice).toBe("move Tackle");
+    });
+  });
 });
