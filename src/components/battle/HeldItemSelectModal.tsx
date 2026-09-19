@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { BERRY_TYPE } from "../../api/berries";
 import type { Item } from "../../api/pikaserve";
 import type { TeamPokemon } from "../../engine/gameStateEngine";
 
@@ -11,8 +12,43 @@ export interface HeldItemSelectModalProps {
   onClose: () => void;
 }
 
+/** One labelled group of selectable items. Renders nothing when the bag holds none of that kind. */
+function ItemSection({
+  heading,
+  items,
+  onSelect,
+}: {
+  heading: string;
+  items: Item[];
+  onSelect: (item: Item) => void;
+}) {
+  if (items.length === 0) return null;
+  return (
+    <div>
+      <h3 className="font-semibold">{heading}</h3>
+      <ul className="mt-1 space-y-2">
+        {items.map((item, index) => (
+          <li key={index}>
+            <button
+              type="button"
+              onClick={() => onSelect(item)}
+              className="w-full rounded-md border-2 border-slate-800 bg-slate-100 px-2 py-1 text-left"
+            >
+              <span className="text-xs font-bold">{item.name.english}</span>
+              <span className="mt-0.5 block text-[10px] leading-tight text-slate-600">{item.description}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 /** Stacks on top of TeamChanger, letting the player give one of the bag's items to a Pokemon. */
 export function HeldItemSelectModal({ pokemon, items, onSelect, onClose }: HeldItemSelectModalProps) {
+  const berries = items.filter((item) => item.type === BERRY_TYPE);
+  const heldItems = items.filter((item) => item.type !== BERRY_TYPE);
+
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") onClose();
@@ -57,20 +93,10 @@ export function HeldItemSelectModal({ pokemon, items, onSelect, onClose }: HeldI
         {items.length === 0 ? (
           <p className="mt-3 italic text-slate-600">You don't have any items.</p>
         ) : (
-          <ul className="mt-3 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
-            {items.map((item, index) => (
-              <li key={index}>
-                <button
-                  type="button"
-                  onClick={() => onSelect(item)}
-                  className="w-full rounded-md border-2 border-slate-800 bg-slate-100 px-2 py-1 text-left"
-                >
-                  <span className="text-xs font-bold">{item.name.english}</span>
-                  <span className="mt-0.5 block text-[10px] leading-tight text-slate-600">{item.description}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
+          <div className="mt-3 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto">
+            <ItemSection heading="Held Items" items={heldItems} onSelect={onSelect} />
+            <ItemSection heading="Berries" items={berries} onSelect={onSelect} />
+          </div>
         )}
       </div>
     </div>

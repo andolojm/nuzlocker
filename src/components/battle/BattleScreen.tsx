@@ -47,6 +47,7 @@ export interface BattleScreenProps {
   onAction?: (action: BattleAction) => void;
   awardedTMs: OwnedTM[];
   awardedItems: Item[];
+  awardedBerries: Item[];
 }
 
 // Trainer battles don't allow catching or running; only wild encounters do.
@@ -78,6 +79,7 @@ export function BattleScreen({
   onAction,
   awardedTMs,
   awardedItems,
+  awardedBerries,
 }: BattleScreenProps) {
   const [openMenu, setOpenMenu] = useState<OpenMenu>("none");
   const [submenuOpenedViaKeyboard, setSubmenuOpenedViaKeyboard] = useState(false);
@@ -252,7 +254,13 @@ export function BattleScreen({
       </div>
 
       {isOutcomePhase && (
-        <OutcomeModal variant={phase} onAdvance={onAdvance} awardedTMs={awardedTMs} awardedItems={awardedItems} />
+        <OutcomeModal
+          variant={phase}
+          onAdvance={onAdvance}
+          awardedTMs={awardedTMs}
+          awardedItems={awardedItems}
+          awardedBerries={awardedBerries}
+        />
       )}
       {showPlayerInfo && <PokemonInfoModal pokemon={playerPokemon} onClose={() => setShowPlayerInfo(false)} />}
       {showOpponentInfo && (

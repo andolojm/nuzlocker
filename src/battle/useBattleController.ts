@@ -7,6 +7,7 @@ import type { CatchAttemptResult } from "../encounter/catchPokemon";
 import { MAX_ACTIVE_TEAM_SIZE, gameStateEngine } from "../engine/gameStateEngine";
 import type { BattleReplayLog, BattleSeed, OwnedTM, TeamPokemon } from "../engine/gameStateEngine";
 import type { StageType } from "../engine/stage";
+import { awardCatchBerries, awardVictoryBerries } from "../engine/berryRewards";
 import { awardCatchHeldItems, awardVictoryHeldItems } from "../engine/heldItemRewards";
 import { awardCatchTM, awardVictoryTMs } from "../engine/tmRewards";
 import { battleNickname } from "./battleNickname";
@@ -108,6 +109,8 @@ export interface UseBattleControllerResult {
   awardedTMs: OwnedTM[];
   /** Held item(s) awarded for the current victory/catch, if any. Empty outside those phases. */
   awardedItems: Item[];
+  /** Berries awarded for the current victory/catch, if any. Empty outside those phases. */
+  awardedBerries: Item[];
 }
 
 interface Snapshot {
@@ -206,6 +209,7 @@ export function useBattleController(
   const [battleLog, setBattleLog] = useState<string[]>([]);
   const [awardedTMs, setAwardedTMs] = useState<OwnedTM[]>([]);
   const [awardedItems, setAwardedItems] = useState<Item[]>([]);
+  const [awardedBerries, setAwardedBerries] = useState<Item[]>([]);
   const [snapshot, setSnapshot] = useState<Snapshot>(() => ({
     playerHp: playerHpRef.current,
     playerActiveIndex: 0,
@@ -585,6 +589,7 @@ export function useBattleController(
         gameStateEngine.addCaughtPokemon(opponent.team[0]);
         setAwardedTMs(await awardCatchTM());
         setAwardedItems(await awardCatchHeldItems());
+        setAwardedBerries(await awardCatchBerries());
         setPhase("caught");
         return;
       }
@@ -618,6 +623,7 @@ export function useBattleController(
       if (result.winner === "p1") {
         setAwardedTMs(await awardVictoryTMs());
         setAwardedItems(await awardVictoryHeldItems());
+        setAwardedBerries(await awardVictoryBerries());
       }
 
       const events = flushEvents();
@@ -768,5 +774,6 @@ export function useBattleController(
     advance,
     awardedTMs,
     awardedItems,
+    awardedBerries,
   };
 }

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { PikaLocal } from "../api/pikaLocal";
 import type { BattleParticipant } from "../battle/battleSimulator";
 import { useBattleController } from "../battle/useBattleController";
 import { encounterPokemon } from "../encounter/encounterPokemon";
@@ -144,7 +145,11 @@ function ResolveOpponent({ confirmedTeam, stage }: ResolveOpponentProps) {
 
     const strengths = stage.opponentTeam ?? [];
     void Promise.all(
-      strengths.map((strength) => encounterPokemon(stageNumber, caughtPokemon, strength, stage.level)),
+      strengths.map(async (strength) => {
+        const pokemon = await encounterPokemon(stageNumber, caughtPokemon, strength, stage.level);
+        const heldItem = await PikaLocal.getRandomOpponentItem();
+        return heldItem ? { ...pokemon, heldItem } : pokemon;
+      }),
     ).then((team) => {
       setOpponent({ name: "Trainer", team });
     });
@@ -209,6 +214,7 @@ function Battle({ player, opponent, stageType, ballBonus, resume }: BattleProps)
         }}
         awardedTMs={controller.awardedTMs}
         awardedItems={controller.awardedItems}
+        awardedBerries={controller.awardedBerries}
       />
       <BattleLog lines={controller.battleLog} />
     </>

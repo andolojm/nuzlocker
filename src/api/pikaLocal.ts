@@ -12,8 +12,11 @@ import movesData from "../vendor/pokemon-data/moves.json";
 import itemsData from "../vendor/pokemon-data/items.json";
 import typesData from "../vendor/pokemon-data/types.json";
 import abilitiesData from "../vendor/pokemon-data/abilities.json";
+import { isBerry } from "./berries";
 import { isHeldItem } from "./heldItems";
 import { isMoveAllowedAtLevel } from "./movePowerCap";
+import { isOpponentBerryEnabled } from "./opponentBerries";
+import { isOpponentHeldItemEnabled } from "./opponentHeldItems";
 import { isMoveHidden } from "./moveVisibility";
 import type {
   Ability,
@@ -38,6 +41,12 @@ const assignableAbilities = abilities.filter((ability) => !ability.hidden);
 
 /** Items a Pokemon can be given to hold (see isHeldItem). Filtered once at module load. */
 const heldItems = items.filter(isHeldItem);
+
+/** Berries a Pokemon can be given to hold (see isBerry). Filtered once at module load. */
+const berries = items.filter(isBerry);
+
+/** How often an opposing Pokemon carries a berry rather than an ordinary held item. */
+const OPPONENT_BERRY_CHANCE = 0.5;
 
 /**
  * A random non-hidden ability's name, chosen synchronously. Exported for callers that can't await
@@ -224,6 +233,41 @@ export class PikaLocal {
 
   static async getRandomHeldItem(random: () => number = Math.random): Promise<Item> {
     return pickRandom(heldItems, random);
+  }
+
+  /**
+   * A random held item an opposing Pokemon is allowed to carry (see api/opponentHeldItems), or
+   * undefined when the allowlist is empty — meaning opponents hold nothing.
+   */
+  static async getRandomOpponentHeldItem(random: () => number = Math.random): Promise<Item | undefined> {
+    const allowed = heldItems.filter(isOpponentHeldItemEnabled);
+    return allowed.length === 0 ? undefined : pickRandom(allowed, random);
+  }
+
+  /** Every berry that does something in battle (see isBerry), in items.json order. */
+  static async getAllBerries(): Promise<Item[]> {
+    return berries;
+  }
+
+  static async getRandomBerry(random: () => number = Math.random): Promise<Item> {
+    return pickRandom(berries, random);
+  }
+
+  /** A random berry an opposing Pokemon is allowed to carry (see api/opponentBerries). */
+  static async getRandomOpponentBerry(random: () => number = Math.random): Promise<Item | undefined> {
+    const allowed = berries.filter(isOpponentBerryEnabled);
+    return allowed.length === 0 ? undefined : pickRandom(allowed, random);
+  }
+
+  /**
+   * What an opposing Pokemon carries into a battle stage: a coin flip between its berry allowlist
+   * and its held-item one. Either side can come back undefined when that allowlist is empty, which
+   * leaves the Pokemon holding nothing rather than silently falling through to the other list.
+   */
+  static async getRandomOpponentItem(random: () => number = Math.random): Promise<Item | undefined> {
+    return random() < OPPONENT_BERRY_CHANCE
+      ? PikaLocal.getRandomOpponentBerry(random)
+      : PikaLocal.getRandomOpponentHeldItem(random);
   }
 
   /** Every move is its own TM, one-to-one — the TM's id is just the move's own id as a number. */

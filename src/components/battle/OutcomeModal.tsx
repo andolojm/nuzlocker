@@ -9,6 +9,8 @@ export interface OutcomeModalProps {
   awardedTMs?: OwnedTM[];
   /** Held item(s) awarded for this outcome, if any. Only ever set for "victory"/"caught". */
   awardedItems?: Item[];
+  /** Berries awarded for this outcome, if any. Only ever set for "victory"/"caught". */
+  awardedBerries?: Item[];
 }
 
 const TEXT: Record<OutcomeModalProps["variant"], string> = {
@@ -18,7 +20,30 @@ const TEXT: Record<OutcomeModalProps["variant"], string> = {
   ran: "Disappointing.",
 };
 
-export function OutcomeModal({ variant, onAdvance, awardedTMs = [], awardedItems = [] }: OutcomeModalProps) {
+/** One "You received ..." block, listing what the outcome handed over. Renders nothing when empty. */
+function AwardList({ heading, names }: { heading: string; names: string[] }) {
+  if (names.length === 0) return null;
+  return (
+    <div className="mt-3">
+      <p className="text-sm font-semibold text-white">{heading}</p>
+      <ul className="mt-1 space-y-0.5">
+        {names.map((name, index) => (
+          <li key={index} className="text-xs font-semibold text-slate-200">
+            {name}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+export function OutcomeModal({
+  variant,
+  onAdvance,
+  awardedTMs = [],
+  awardedItems = [],
+  awardedBerries = [],
+}: OutcomeModalProps) {
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Enter" || event.key === " ") {
@@ -40,35 +65,20 @@ export function OutcomeModal({ variant, onAdvance, awardedTMs = [], awardedItems
       <div className="text-center">
         <p className="text-4xl font-extrabold text-white drop-shadow-lg">{TEXT[variant]}</p>
 
-        {awardedTMs.length > 0 && (
-          <div className="mt-3">
-            <p className="text-sm font-semibold text-white">
-              {awardedTMs.length === 1 ? "You received a TM!" : `You received ${awardedTMs.length} TMs!`}
-            </p>
-            <ul className="mt-1 space-y-0.5">
-              {awardedTMs.map((tm, index) => (
-                <li key={index} className="text-xs font-semibold text-slate-200">
-                  {tm.move.name.english}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {awardedItems.length > 0 && (
-          <div className="mt-3">
-            <p className="text-sm font-semibold text-white">
-              {awardedItems.length === 1 ? "You received an item!" : `You received ${awardedItems.length} items!`}
-            </p>
-            <ul className="mt-1 space-y-0.5">
-              {awardedItems.map((item, index) => (
-                <li key={index} className="text-xs font-semibold text-slate-200">
-                  {item.name.english}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+        <AwardList
+          heading={awardedTMs.length === 1 ? "You received a TM!" : `You received ${awardedTMs.length} TMs!`}
+          names={awardedTMs.map((tm) => tm.move.name.english)}
+        />
+        <AwardList
+          heading={awardedItems.length === 1 ? "You received an item!" : `You received ${awardedItems.length} items!`}
+          names={awardedItems.map((item) => item.name.english)}
+        />
+        <AwardList
+          heading={
+            awardedBerries.length === 1 ? "You received a berry!" : `You received ${awardedBerries.length} berries!`
+          }
+          names={awardedBerries.map((berry) => berry.name.english)}
+        />
 
         <p className="mt-3 text-xs font-semibold text-slate-300">Click, or press space/enter, to continue</p>
       </div>

@@ -4,6 +4,8 @@ import { DEFAULT_TRAINER_AI_ID, TRAINER_AI_IMPLEMENTATIONS } from "../battle/tra
 import { gameStateEngine } from "../engine/gameStateEngine";
 import { injectTestTeam } from "../engine/injectTestTeam";
 import { MoveVisibilityEditor } from "./MoveVisibilityEditor";
+import { OpponentBerryEditor } from "./OpponentBerryEditor";
+import { OpponentHeldItemEditor } from "./OpponentHeldItemEditor";
 import { preloadAllPokemonImages } from "../util/preloadPokemonImages";
 
 export interface DevStageControlsProps {
@@ -14,6 +16,8 @@ export interface DevStageControlsProps {
 export function DevStageControls({ onReset }: DevStageControlsProps) {
   const [injecting, setInjecting] = useState(false);
   const [showMoveEditor, setShowMoveEditor] = useState(false);
+  const [showOpponentItemEditor, setShowOpponentItemEditor] = useState(false);
+  const [showOpponentBerryEditor, setShowOpponentBerryEditor] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [preloadingImages, setPreloadingImages] = useState(false);
   const [trainerAiId, setTrainerAiId] = useState(() => getSelectedTrainerAiId() ?? DEFAULT_TRAINER_AI_ID);
@@ -137,6 +141,20 @@ export function DevStageControls({ onReset }: DevStageControlsProps) {
           </button>
           <button
             type="button"
+            onClick={() => setShowOpponentItemEditor(true)}
+            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            OPPONENT ITEMS
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowOpponentBerryEditor(true)}
+            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            OPPONENT BERRIES
+          </button>
+          <button
+            type="button"
             disabled={preloadingImages}
             onClick={() => void handlePreloadImages()}
             className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60"
@@ -184,6 +202,8 @@ export function DevStageControls({ onReset }: DevStageControlsProps) {
         </>
       )}
       {showMoveEditor && <MoveVisibilityEditor onClose={() => setShowMoveEditor(false)} />}
+      {showOpponentItemEditor && <OpponentHeldItemEditor onClose={() => setShowOpponentItemEditor(false)} />}
+      {showOpponentBerryEditor && <OpponentBerryEditor onClose={() => setShowOpponentBerryEditor(false)} />}
     </div>
   );
 }
