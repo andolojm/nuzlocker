@@ -174,8 +174,10 @@ export function TeamChanger({ alivePokemon, levelCap, onSubmit, submitLabel }: T
                   type="button"
                   onClick={() => setItemPokemon(pokemon)}
                   title={pokemon.heldItem ? `Holding ${pokemon.heldItem.name.english}` : "Holding nothing"}
-                  className={`rounded-md px-1.5 py-1 text-[10px] font-bold text-white ${
-                    pokemon.heldItem ? "bg-amber-600" : "bg-slate-500"
+                  // px-1/py-0.5 rather than the INFO button's px-1.5/py-1: the 2px border takes up
+                  // the difference, so both buttons still come out the same size.
+                  className={`rounded-md border-2 bg-slate-500 px-1 py-0.5 text-[10px] font-bold text-white ${
+                    pokemon.heldItem ? "border-emerald-400" : "border-yellow-400"
                   }`}
                 >
                   ITEM
@@ -238,8 +240,10 @@ export function TeamChanger({ alivePokemon, levelCap, onSubmit, submitLabel }: T
                   type="button"
                   onClick={() => setItemPokemon(pokemon)}
                   title={pokemon.heldItem ? `Holding ${pokemon.heldItem.name.english}` : "Holding nothing"}
-                  className={`rounded-md px-1.5 py-1 text-[10px] font-bold text-white ${
-                    pokemon.heldItem ? "bg-amber-600" : "bg-slate-500"
+                  // px-1/py-0.5 rather than the INFO button's px-1.5/py-1: the 2px border takes up
+                  // the difference, so both buttons still come out the same size.
+                  className={`rounded-md border-2 bg-slate-500 px-1 py-0.5 text-[10px] font-bold text-white ${
+                    pokemon.heldItem ? "border-emerald-400" : "border-yellow-400"
                   }`}
                 >
                   ITEM
