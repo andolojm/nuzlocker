@@ -103,7 +103,7 @@ export function PlayPage() {
   return (
     <>
       <Stepper stages={STAGES} progress={gameState.state} />
-      <main className="mx-auto max-w-5xl px-6 py-4">
+      <main className="mx-auto max-w-5xl px-1 py-4">
         <div>
           {gameComplete ? (
             <EndOfGameScreen alivePokemon={gameState.pokemon.alive} deadPokemon={gameState.pokemon.dead} />
