@@ -179,6 +179,7 @@ function Battle({ player, opponent, stageType, ballBonus, resume }: BattleProps)
   if (controller.phase === "defeat-summary") {
     return (
       <DefeatScreen
+        score={gameStateEngine.current.score}
         deadPokemon={gameStateEngine.current.pokemon.dead}
         onConfirm={() => gameStateEngine.resetRun()}
       />

@@ -7,7 +7,8 @@ import type { PartySlot } from "../components/battle/partySlot";
 import type { CatchAttemptResult } from "../encounter/catchPokemon";
 import { MAX_ACTIVE_TEAM_SIZE, gameStateEngine } from "../engine/gameStateEngine";
 import type { BattleReplayLog, BattleSeed, OwnedTM, TeamPokemon } from "../engine/gameStateEngine";
-import type { StageType } from "../engine/stage";
+import { ScoringRule } from "../engine/scoring";
+import { StageType } from "../engine/stage";
 import { awardCatchBerries, awardVictoryBerries } from "../engine/berryRewards";
 import { awardCatchHeldItems, awardVictoryHeldItems } from "../engine/heldItemRewards";
 import { awardCatchTM, awardVictoryTMs } from "../engine/tmRewards";
@@ -645,8 +646,18 @@ export function useBattleController(
       resolveChoiceRef.current = null;
 
       if (result.ranAway) {
+        gameStateEngine.addScore(ScoringRule.RanFromPokemon, opponent.team[0].bst);
         setPhase("ran");
         return;
+      }
+
+      if (stageType === StageType.Battle) {
+        for (const faint of result.fainted) {
+          if (faint.player !== "p2") continue;
+          const nickname = rawIdentName(faint.pokemon);
+          const index = opponent.team.findIndex((_, i) => battleNickname(opponent.team, i) === nickname);
+          if (index !== -1) gameStateEngine.addScore(ScoringRule.DefeatedPokemon, opponent.team[index].bst);
+        }
       }
 
       if (result.winner === "p1") {

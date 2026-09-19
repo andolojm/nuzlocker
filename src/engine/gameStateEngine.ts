@@ -1,6 +1,9 @@
 import { randomAbilityName } from "../api/pikaLocal";
 import type { Item, Move, Pokemon, TM } from "../api/pikaserve";
+import { saveHighScore } from "./highScores";
+import { ScoringRule, scoreDelta } from "./scoring";
 import type { StageType } from "./stage";
+import { STAGES } from "./stages";
 
 export type FourMoves = [Move, Move, Move, Move];
 
@@ -63,6 +66,8 @@ export interface GameState {
   bag: Item[];
   tms: OwnedTM[];
   battleLog: BattleReplayLog | null;
+  /** The current run's running tally — see engine/scoring.ts for how each event scores. */
+  score: number;
 }
 
 export const GAME_STATE_STORAGE_KEY = "nuzlocker:game-state";
@@ -74,6 +79,7 @@ function createInitialState(): GameState {
     bag: [],
     tms: [],
     battleLog: null,
+    score: 0,
   };
 }
 
@@ -88,6 +94,7 @@ function withDefaults(state: GameState): GameState {
   return {
     ...state,
     tms: state.tms ?? [],
+    score: state.score ?? 0,
     pokemon: {
       alive: state.pokemon.alive.map(withAbility),
       dead: state.pokemon.dead.map(withAbility),
@@ -183,7 +190,18 @@ export class GameStateEngine {
   addCaughtPokemon(pokemon: TeamPokemon): void {
     const activeCount = this.gameState.pokemon.alive.filter((p) => p.active !== undefined).length;
     const active = activeCount < MAX_ACTIVE_TEAM_SIZE ? activeCount + 1 : undefined;
-    this.addPokemon(pokemon, active);
+    const alivePokemon: AlivePokemon = { ...pokemon, active };
+    this.commit({
+      ...this.gameState,
+      pokemon: { ...this.gameState.pokemon, alive: [...this.gameState.pokemon.alive, alivePokemon] },
+      score: this.gameState.score + scoreDelta(ScoringRule.DefeatedPokemon, pokemon.bst),
+    });
+  }
+
+  /** Applies a scoring event not otherwise tied to a pokemon/bag mutation here (e.g. defeating an
+   * opposing trainer's Pokemon, or running from a catchable one) — see engine/scoring.ts. */
+  addScore(rule: ScoringRule, bst?: number): void {
+    this.commit({ ...this.gameState, score: this.gameState.score + scoreDelta(rule, bst) });
   }
 
   /** Deletes every Pokemon, alive and dead. */
@@ -230,6 +248,7 @@ export class GameStateEngine {
     this.commit({
       ...this.gameState,
       pokemon: { alive, dead: [...this.gameState.pokemon.dead, deadPokemon] },
+      score: this.gameState.score + scoreDelta(ScoringRule.FaintedPokemon, pokemon.bst),
     });
   }
 
@@ -270,7 +289,12 @@ export class GameStateEngine {
     const tms = [...this.gameState.tms];
     tms.splice(tmIndex, 1);
 
-    this.commit({ ...this.gameState, pokemon: { ...this.gameState.pokemon, alive }, tms });
+    this.commit({
+      ...this.gameState,
+      pokemon: { ...this.gameState.pokemon, alive },
+      tms,
+      score: this.gameState.score + scoreDelta(ScoringRule.UsedTM),
+    });
     return taught;
   }
 
@@ -386,7 +410,17 @@ export class GameStateEngine {
   }
 
   progressState(): void {
-    this.commit({ ...this.gameState, state: this.gameState.state + 1 });
+    const state = this.gameState.state + 1;
+    // The run just cleared its final stage — record this win before the state change hides
+    // gameState.pokemon behind the "game complete" screen.
+    if (state >= STAGES.length) {
+      saveHighScore({
+        timestamp: Date.now(),
+        score: this.gameState.score,
+        survivors: this.gameState.pokemon.alive.map((pokemon) => pokemon.name.english),
+      });
+    }
+    this.commit({ ...this.gameState, state });
   }
 
   regressState(): void {

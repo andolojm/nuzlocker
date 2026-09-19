@@ -106,7 +106,11 @@ export function PlayPage() {
       <main className="mx-auto max-w-5xl px-1 py-4">
         <div>
           {gameComplete ? (
-            <EndOfGameScreen alivePokemon={gameState.pokemon.alive} deadPokemon={gameState.pokemon.dead} />
+            <EndOfGameScreen
+              score={gameState.score}
+              alivePokemon={gameState.pokemon.alive}
+              deadPokemon={gameState.pokemon.dead}
+            />
           ) : (
             <StageFlow
               key={`${gameState.state}-${resetToken}`}

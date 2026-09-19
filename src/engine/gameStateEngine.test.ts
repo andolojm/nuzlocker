@@ -2,7 +2,10 @@
  * @jest-environment jsdom
  */
 import type { Item, Move, Pokemon } from "../api/pikaserve";
+import { highScoresSortedByScore } from "./highScores";
+import { ScoringRule } from "./scoring";
 import { StageType } from "./stage";
+import { STAGES } from "./stages";
 import {
   AlivePokemon,
   BattleReplayLog,
@@ -114,6 +117,7 @@ describe("GameStateEngine", () => {
       bag: [],
       tms: [],
       battleLog: null,
+      score: 0,
     });
   });
 
@@ -198,6 +202,14 @@ describe("GameStateEngine", () => {
       expect(caught.active).toBe(3);
     });
 
+    it("addCaughtPokemon scores the caught pokemon's base stat total", () => {
+      const engine = new GameStateEngine();
+
+      engine.addCaughtPokemon(buildTeamPokemon({ bst: 400 }));
+
+      expect(engine.current.score).toBe(400);
+    });
+
     it("addCaughtPokemon joins inactive once the active team is already full", () => {
       const engine = new GameStateEngine();
       for (let i = 0; i < MAX_ACTIVE_TEAM_SIZE; i++) {
@@ -232,6 +244,16 @@ describe("GameStateEngine", () => {
       expect(engine.current.pokemon.dead).toHaveLength(1);
       expect(engine.current.pokemon.dead[0]).not.toHaveProperty("active");
       expect(engine.current.pokemon.dead[0].name.english).toBe("Infernape");
+    });
+
+    it("markPokemonDead deducts the fainted pokemon's base stat total from the score", () => {
+      const engine = new GameStateEngine();
+      engine.addCaughtPokemon(buildTeamPokemon({ bst: 400 }));
+      const [alivePokemon] = engine.current.pokemon.alive as AlivePokemon[];
+
+      engine.markPokemonDead(alivePokemon);
+
+      expect(engine.current.score).toBe(0);
     });
 
     it("markPokemonDead throws when the pokemon is not in the alive party", () => {
@@ -280,6 +302,18 @@ describe("GameStateEngine", () => {
         expect(updated.moves[2]).toEqual(infernape.moves[2]);
         expect(updated.moves[3]).toEqual(infernape.moves[3]);
         expect(engine.current.tms).toEqual([]);
+      });
+
+      it("deducts 50 points from the score", () => {
+        const engine = new GameStateEngine();
+        engine.addPokemon(buildTeamPokemon());
+        const tm = buildOwnedTM();
+        engine.addTM(tm);
+        const [infernape] = engine.current.pokemon.alive;
+
+        engine.teachMove(infernape, 1, tm);
+
+        expect(engine.current.score).toBe(-50);
       });
 
       it("preserves everything else about the pokemon (e.g. active order)", () => {
@@ -503,6 +537,37 @@ describe("GameStateEngine", () => {
 
       expect(engine.current.state).toBe(2);
     });
+
+    it("saves a high score once the run clears its final stage", () => {
+      const engine = new GameStateEngine();
+      engine.addPokemon(buildTeamPokemon({ name: { english: "Survivor" } }), 1);
+      engine.addCaughtPokemon(buildTeamPokemon({ id: 77, bst: 250 }));
+
+      for (let i = 0; i < STAGES.length; i++) engine.progressState();
+
+      const [entry] = highScoresSortedByScore();
+      expect(entry.score).toBe(engine.current.score);
+      expect(entry.survivors).toEqual(["Survivor", engine.current.pokemon.alive[1].name.english]);
+    });
+
+    it("does not save a high score for stage transitions before the run is complete", () => {
+      const engine = new GameStateEngine();
+
+      engine.progressState();
+
+      expect(highScoresSortedByScore()).toEqual([]);
+    });
+  });
+
+  describe("addScore", () => {
+    it("applies a scoring rule's point value to the running score", () => {
+      const engine = new GameStateEngine();
+
+      engine.addScore(ScoringRule.DefeatedPokemon, 300);
+      engine.addScore(ScoringRule.RanFromPokemon, 200);
+
+      expect(engine.current.score).toBe(300 - 100);
+    });
   });
 
   describe("regressState", () => {
@@ -685,7 +750,7 @@ describe("GameStateEngine", () => {
 
       const engine = new GameStateEngine();
 
-      expect(engine.current).toEqual({ ...preTmState, tms: [], battleLog: null });
+      expect(engine.current).toEqual({ ...preTmState, tms: [], battleLog: null, score: 0 });
     });
 
     it("falls back to the initial state when localStorage contains invalid JSON", () => {
@@ -699,6 +764,7 @@ describe("GameStateEngine", () => {
         bag: [],
         tms: [],
         battleLog: null,
+        score: 0,
       });
     });
   });

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
+import { useGameState } from "../engine/useGameState";
 import { ResetConfirmModal } from "./ResetConfirmModal";
 
 export interface HeaderProps {
@@ -13,6 +14,7 @@ const linkClassName = ({ isActive }: { isActive: boolean }) =>
   }`;
 
 export function Header({ onReset }: HeaderProps) {
+  const gameState = useGameState();
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmingReset, setConfirmingReset] = useState(false);
 
@@ -29,9 +31,12 @@ export function Header({ onReset }: HeaderProps) {
   return (
     <header className="border-b border-slate-200 bg-white">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-3">
-        <Link to="/" className="text-lg font-extrabold tracking-tight text-slate-900">
-          PokeRally
-        </Link>
+        <div>
+          <Link to="/" className="text-lg font-extrabold tracking-tight text-slate-900">
+            PokeRally
+          </Link>
+          <p className="text-xs font-semibold text-slate-500">Score: {gameState.score}</p>
+        </div>
 
         <nav aria-label="Main" className="hidden items-center gap-1 sm:flex">
           <NavLink to="/" end className={linkClassName}>

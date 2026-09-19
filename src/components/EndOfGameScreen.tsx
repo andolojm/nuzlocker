@@ -2,6 +2,7 @@ import type { AlivePokemon, TeamPokemon } from "../engine/gameStateEngine";
 import { PokemonTile } from "./battle/PokemonTile";
 
 export interface EndOfGameScreenProps {
+  score: number;
   alivePokemon: AlivePokemon[];
   deadPokemon: TeamPokemon[];
 }
@@ -35,7 +36,7 @@ function PokemonBox({ title, pokemon, emptyText }: PokemonBoxProps) {
 }
 
 /** Shown once the run has cleared every stage. Two-by-two overview grid, plus a result box (top right) for future content. */
-export function EndOfGameScreen({ alivePokemon, deadPokemon }: EndOfGameScreenProps) {
+export function EndOfGameScreen({ score, alivePokemon, deadPokemon }: EndOfGameScreenProps) {
   const activeParty = alivePokemon
     .filter((pokemon) => pokemon.active !== undefined)
     .sort((a, b) => (a.active ?? 0) - (b.active ?? 0));
@@ -45,8 +46,9 @@ export function EndOfGameScreen({ alivePokemon, deadPokemon }: EndOfGameScreenPr
     <div className="grid grid-cols-2 gap-4">
       <PokemonBox title="Party" pokemon={activeParty} emptyText="No Pokémon in the active party." />
 
-      <div className="flex items-center justify-center rounded-xl border-4 border-slate-800 bg-slate-100 p-4 shadow-xl">
+      <div className="flex flex-col items-center justify-center gap-1 rounded-xl border-4 border-slate-800 bg-slate-100 p-4 shadow-xl">
         <p className="text-3xl font-extrabold text-slate-900">Win!</p>
+        <p className="text-sm font-semibold text-slate-700">Final score: {score}</p>
       </div>
 
       <PokemonBox title="Inactive" pokemon={inactiveParty} emptyText="No inactive Pokémon." />
