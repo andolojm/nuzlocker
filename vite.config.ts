@@ -14,8 +14,11 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
+        id: '.',
         name: 'Nuzlocker',
         short_name: 'Nuzlocker',
+        description: 'Play a Pokémon Nuzlocke run and simulate its battles right in the browser.',
+        categories: ['games'],
         start_url: '.',
         display: 'standalone',
         background_color: '#ffffff',
