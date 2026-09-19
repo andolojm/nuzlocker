@@ -12,6 +12,7 @@ import movesData from "../vendor/pokemon-data/moves.json";
 import itemsData from "../vendor/pokemon-data/items.json";
 import typesData from "../vendor/pokemon-data/types.json";
 import abilitiesData from "../vendor/pokemon-data/abilities.json";
+import { isHeldItem } from "./heldItems";
 import { isMoveAllowedAtLevel } from "./movePowerCap";
 import { isMoveHidden } from "./moveVisibility";
 import type {
@@ -34,6 +35,9 @@ const abilities = abilitiesData as unknown as Ability[];
 
 /** Abilities eligible for random assignment (see Ability.hidden). Filtered once at module load. */
 const assignableAbilities = abilities.filter((ability) => !ability.hidden);
+
+/** Items a Pokemon can be given to hold (see isHeldItem). Filtered once at module load. */
+const heldItems = items.filter(isHeldItem);
 
 /**
  * A random non-hidden ability's name, chosen synchronously. Exported for callers that can't await
@@ -211,6 +215,15 @@ export class PikaLocal {
 
   static async getItem(nameOrId: NameOrId): Promise<Item> {
     return findByIdOrName(items, nameOrId, (i) => i.id, (i) => i.name.english, "Item");
+  }
+
+  /** Every item a Pokemon can hold in battle (see isHeldItem), in items.json order. */
+  static async getAllHeldItems(): Promise<Item[]> {
+    return heldItems;
+  }
+
+  static async getRandomHeldItem(random: () => number = Math.random): Promise<Item> {
+    return pickRandom(heldItems, random);
   }
 
   /** Every move is its own TM, one-to-one — the TM's id is just the move's own id as a number. */

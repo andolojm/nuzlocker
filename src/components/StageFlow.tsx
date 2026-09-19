@@ -208,6 +208,7 @@ function Battle({ player, opponent, stageType, ballBonus, resume }: BattleProps)
           if (action === "RUN") controller.submitRun();
         }}
         awardedTMs={controller.awardedTMs}
+        awardedItems={controller.awardedItems}
       />
       <BattleLog lines={controller.battleLog} />
     </>

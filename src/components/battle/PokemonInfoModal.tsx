@@ -132,6 +132,16 @@ export function PokemonInfoModal({
             ) : (
               <AbilityLine ability={displayPokemon.ability} />
             )}
+            {!isOpponent && (
+              <p className="text-xs min-[600px]:text-sm">
+                <span className="font-semibold">Holding:</span>{" "}
+                {displayPokemon.heldItem ? (
+                  displayPokemon.heldItem.name.english
+                ) : (
+                  <span className="italic text-slate-600">nothing</span>
+                )}
+              </p>
+            )}
           </div>
 
           <h3 className="mt-2 font-semibold">Moves</h3>

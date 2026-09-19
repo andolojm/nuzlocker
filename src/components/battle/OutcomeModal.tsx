@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import type { Item } from "../../api/pikaserve";
 import type { OwnedTM } from "../../engine/gameStateEngine";
 
 export interface OutcomeModalProps {
@@ -6,6 +7,8 @@ export interface OutcomeModalProps {
   onAdvance: () => void;
   /** TM(s) awarded for this outcome, if any. Only ever set for "victory"/"caught". */
   awardedTMs?: OwnedTM[];
+  /** Held item(s) awarded for this outcome, if any. Only ever set for "victory"/"caught". */
+  awardedItems?: Item[];
 }
 
 const TEXT: Record<OutcomeModalProps["variant"], string> = {
@@ -15,7 +18,7 @@ const TEXT: Record<OutcomeModalProps["variant"], string> = {
   ran: "Disappointing.",
 };
 
-export function OutcomeModal({ variant, onAdvance, awardedTMs = [] }: OutcomeModalProps) {
+export function OutcomeModal({ variant, onAdvance, awardedTMs = [], awardedItems = [] }: OutcomeModalProps) {
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Enter" || event.key === " ") {
@@ -46,6 +49,21 @@ export function OutcomeModal({ variant, onAdvance, awardedTMs = [] }: OutcomeMod
               {awardedTMs.map((tm, index) => (
                 <li key={index} className="text-xs font-semibold text-slate-200">
                   {tm.move.name.english}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {awardedItems.length > 0 && (
+          <div className="mt-3">
+            <p className="text-sm font-semibold text-white">
+              {awardedItems.length === 1 ? "You received an item!" : `You received ${awardedItems.length} items!`}
+            </p>
+            <ul className="mt-1 space-y-0.5">
+              {awardedItems.map((item, index) => (
+                <li key={index} className="text-xs font-semibold text-slate-200">
+                  {item.name.english}
                 </li>
               ))}
             </ul>

@@ -337,6 +337,84 @@ describe("GameStateEngine", () => {
     });
   });
 
+  describe("setHeldItem", () => {
+    const leftovers = buildItem({ id: 234, type: "Hold items", name: { english: "Leftovers" } });
+
+    it("gives the pokemon the item and takes it out of the bag, in one commit", () => {
+      const engine = new GameStateEngine();
+      engine.addPokemon(buildTeamPokemon());
+      engine.addItem(leftovers);
+      const [infernape] = engine.current.pokemon.alive;
+
+      const holding = engine.setHeldItem(infernape, engine.current.bag[0]);
+
+      expect(holding.heldItem).toEqual(leftovers);
+      expect(engine.current.pokemon.alive[0]).toBe(holding);
+      expect(engine.current.bag).toEqual([]);
+    });
+
+    it("returns the previously held item to the bag when swapping", () => {
+      const engine = new GameStateEngine();
+      engine.addPokemon(buildTeamPokemon());
+      const focusSash = buildItem({ id: 275, type: "Hold items", name: { english: "Focus Sash" } });
+      engine.addItem(leftovers);
+      engine.addItem(focusSash);
+      const [infernape] = engine.current.pokemon.alive;
+
+      const holding = engine.setHeldItem(infernape, engine.current.bag[0]);
+      const swapped = engine.setHeldItem(holding, engine.current.bag[0]);
+
+      expect(swapped.heldItem).toEqual(focusSash);
+      expect(engine.current.bag).toEqual([leftovers]);
+    });
+
+    it("takes the item back to the bag when given null", () => {
+      const engine = new GameStateEngine();
+      engine.addPokemon(buildTeamPokemon(), 1);
+      engine.addItem(leftovers);
+      const [infernape] = engine.current.pokemon.alive;
+      const holding = engine.setHeldItem(infernape, engine.current.bag[0]);
+
+      const empty = engine.setHeldItem(holding, null);
+
+      expect(empty.heldItem).toBeUndefined();
+      expect(empty.active).toBe(1);
+      expect(engine.current.bag).toEqual([leftovers]);
+    });
+
+    it("persists the held item", () => {
+      const engine = new GameStateEngine();
+      engine.addPokemon(buildTeamPokemon());
+      engine.addItem(leftovers);
+      const [infernape] = engine.current.pokemon.alive;
+
+      engine.setHeldItem(infernape, engine.current.bag[0]);
+
+      const persisted = JSON.parse(localStorage.getItem(GAME_STATE_STORAGE_KEY)!);
+      expect(persisted.pokemon.alive[0].heldItem).toEqual(leftovers);
+      expect(persisted.bag).toEqual([]);
+    });
+
+    it("throws when the pokemon is not in the alive party", () => {
+      const engine = new GameStateEngine();
+      engine.addItem(leftovers);
+      const notOnTeam: AlivePokemon = { ...buildTeamPokemon(), active: undefined };
+
+      expect(() => engine.setHeldItem(notOnTeam, engine.current.bag[0])).toThrow(/not in the alive party/);
+    });
+
+    it("throws when the item is not in the bag, leaving the bag untouched", () => {
+      const engine = new GameStateEngine();
+      engine.addPokemon(buildTeamPokemon());
+      engine.addItem(leftovers);
+      const [infernape] = engine.current.pokemon.alive;
+
+      expect(() => engine.setHeldItem(infernape, buildItem({ type: "Hold items" }))).toThrow(/not in the bag/);
+      expect(engine.current.bag).toEqual([leftovers]);
+      expect(engine.current.pokemon.alive[0].heldItem).toBeUndefined();
+    });
+  });
+
   describe("setActiveTeam", () => {
     it("assigns 1-based order to the given pokemon, in the order provided", () => {
       const engine = new GameStateEngine();

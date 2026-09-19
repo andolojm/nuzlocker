@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { PikaLocal } from "../../api/pikaLocal";
-import type { Move } from "../../api/pikaserve";
+import type { Item, Move } from "../../api/pikaserve";
 import { resolveEvolution } from "../../engine/evolution";
 import { MAX_ACTIVE_TEAM_SIZE, gameStateEngine } from "../../engine/gameStateEngine";
 import type { AlivePokemon, FourMoves, TeamPokemon } from "../../engine/gameStateEngine";
 import { nextMoveLearnLevel, rollLearnableMove } from "../../engine/moveLearning";
+import { useGameState } from "../../engine/useGameState";
+import { HeldItemSelectModal } from "./HeldItemSelectModal";
 import { LevelUpModal } from "./LevelUpModal";
 import { PartyNotFullWarningModal } from "./PartyNotFullWarningModal";
 import { PokemonInfoModal } from "./PokemonInfoModal";
@@ -37,8 +39,10 @@ export function TeamChanger({ alivePokemon, levelCap, onSubmit, submitLabel }: T
     alivePokemon.filter((pokemon) => pokemon.active === undefined),
   );
   const [infoPokemon, setInfoPokemon] = useState<AlivePokemon | null>(null);
+  const [itemPokemon, setItemPokemon] = useState<AlivePokemon | null>(null);
   const [levelUpInfo, setLevelUpInfo] = useState<LevelUpInfo | null>(null);
   const [partyWarnings, setPartyWarnings] = useState<string[]>([]);
+  const gameState = useGameState();
 
   function moveToInactive(pokemon: AlivePokemon) {
     setActive((current) => current.filter((p) => p !== pokemon));
@@ -100,6 +104,7 @@ export function TeamChanger({ alivePokemon, levelCap, onSubmit, submitLabel }: T
         moves: pokemon.moves,
         ivs: pokemon.ivs,
         ability: pokemon.ability,
+        heldItem: pokemon.heldItem,
         level: targetLevel,
         evolvesInto: nextEvolution?.evolvesInto,
         evolutionLevel: nextEvolution?.evolutionLevel,
@@ -118,6 +123,12 @@ export function TeamChanger({ alivePokemon, levelCap, onSubmit, submitLabel }: T
     } else {
       setLevelUpInfo({ pokemon: leveled, fromName });
     }
+  }
+
+  function handleSelectHeldItem(pokemon: AlivePokemon, item: Item | null) {
+    const updated = gameStateEngine.setHeldItem(pokemon, item);
+    replaceInLocalState(pokemon, updated);
+    setItemPokemon(null);
   }
 
   function handleForgetMove(pokemon: AlivePokemon, current: FourMoves, learned: Move, forgetIndex: number) {
@@ -158,6 +169,16 @@ export function TeamChanger({ alivePokemon, levelCap, onSubmit, submitLabel }: T
                   className="rounded-md bg-slate-500 px-1.5 py-1 text-[10px] font-bold text-white"
                 >
                   INFO
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setItemPokemon(pokemon)}
+                  title={pokemon.heldItem ? `Holding ${pokemon.heldItem.name.english}` : "Holding nothing"}
+                  className={`rounded-md px-1.5 py-1 text-[10px] font-bold text-white ${
+                    pokemon.heldItem ? "bg-amber-600" : "bg-slate-500"
+                  }`}
+                >
+                  ITEM
                 </button>
                 {pokemon.level < levelCap && (
                   <button
@@ -212,6 +233,16 @@ export function TeamChanger({ alivePokemon, levelCap, onSubmit, submitLabel }: T
                   className="rounded-md bg-slate-500 px-1.5 py-1 text-[10px] font-bold text-white"
                 >
                   INFO
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setItemPokemon(pokemon)}
+                  title={pokemon.heldItem ? `Holding ${pokemon.heldItem.name.english}` : "Holding nothing"}
+                  className={`rounded-md px-1.5 py-1 text-[10px] font-bold text-white ${
+                    pokemon.heldItem ? "bg-amber-600" : "bg-slate-500"
+                  }`}
+                >
+                  ITEM
                 </button>
                 {pokemon.level < levelCap && (
                   <button
@@ -276,6 +307,14 @@ export function TeamChanger({ alivePokemon, levelCap, onSubmit, submitLabel }: T
             replaceInLocalState(infoPokemon, updated);
             setInfoPokemon(updated);
           }}
+        />
+      )}
+      {itemPokemon && (
+        <HeldItemSelectModal
+          pokemon={itemPokemon}
+          items={gameState.bag}
+          onSelect={(item) => handleSelectHeldItem(itemPokemon, item)}
+          onClose={() => setItemPokemon(null)}
         />
       )}
       {levelUpInfo && (

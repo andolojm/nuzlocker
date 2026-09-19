@@ -9,6 +9,8 @@ export interface TeamPokemon extends Pokemon {
   level: number;
   /** Name of this Pokemon's ability — rolled randomly on creation, then fixed (carries through evolution). */
   ability: string;
+  /** The item this Pokemon carries into battle, or undefined for none (the default). */
+  heldItem?: Item;
   /** Species id this Pokemon evolves into, if it evolves at all. */
   evolvesInto?: number;
   /** Level `evolvesInto` kicks in at — parsed off a level-based condition, or rolled once otherwise. */
@@ -57,6 +59,7 @@ export interface GameState {
     alive: AlivePokemon[];
     dead: TeamPokemon[];
   };
+  /** Held items the player owns but hasn't given to anyone yet; assigning one moves it out of here. */
   bag: Item[];
   tms: OwnedTM[];
   battleLog: BattleReplayLog | null;
@@ -269,6 +272,37 @@ export class GameStateEngine {
 
     this.commit({ ...this.gameState, pokemon: { ...this.gameState.pokemon, alive }, tms });
     return taught;
+  }
+
+  /**
+   * Gives `pokemon` a held item from the bag, or takes its item away when `item` is null. Whatever
+   * it was holding goes back in the bag, so the bag plus everyone's held items always accounts for
+   * every item the player owns. `pokemon` must be the exact live reference currently in the alive
+   * party (as with teachMove), and `item` the exact reference in the bag. Returns the new reference
+   * for the same reason teachMove does.
+   */
+  setHeldItem(pokemon: AlivePokemon, item: Item | null): AlivePokemon {
+    const pokemonIndex = this.gameState.pokemon.alive.indexOf(pokemon);
+    if (pokemonIndex === -1) {
+      throw new Error(`Pokemon "${pokemon.name.english}" is not in the alive party`);
+    }
+
+    const bag = [...this.gameState.bag];
+    if (item) {
+      const itemIndex = bag.indexOf(item);
+      if (itemIndex === -1) {
+        throw new Error(`Item "${item.name.english}" is not in the bag`);
+      }
+      bag.splice(itemIndex, 1);
+    }
+    if (pokemon.heldItem) bag.push(pokemon.heldItem);
+
+    const holding: AlivePokemon = { ...pokemon, heldItem: item ?? undefined };
+    const alive = [...this.gameState.pokemon.alive];
+    alive[pokemonIndex] = holding;
+
+    this.commit({ ...this.gameState, pokemon: { ...this.gameState.pokemon, alive }, bag });
+    return holding;
   }
 
   /**

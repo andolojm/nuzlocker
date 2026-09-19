@@ -1,7 +1,14 @@
 import type { Move, Pokemon } from "../api/pikaserve";
 import type { TeamPokemon } from "../engine/gameStateEngine";
 import { StageType } from "../engine/stage";
-import { ATTEMPT_CATCH, BattleSimulator, MoveNotFoundError, SpeciesNotFoundError, buildShowdownTeam } from "./battleSimulator";
+import {
+  ATTEMPT_CATCH,
+  BattleSimulator,
+  ItemNotFoundError,
+  MoveNotFoundError,
+  SpeciesNotFoundError,
+  buildShowdownTeam,
+} from "./battleSimulator";
 import type { BattleRequest } from "./battleSimulator";
 
 function buildMove(overrides: Partial<Move> = {}): Move {
@@ -109,6 +116,26 @@ describe("buildShowdownTeam", () => {
     const [set] = buildShowdownTeam([pokemon]);
 
     expect(set.ivs).toEqual({ hp: 1, atk: 5, def: 10, spa: 15, spd: 20, spe: 25 });
+  });
+
+  it("gives the set the Pokemon's held item, and no item when it holds nothing", () => {
+    const holdingNothing = buildTeamPokemon();
+    const holding = {
+      ...buildTeamPokemon(),
+      heldItem: { id: 234, type: "Hold items", description: "", name: { english: "Leftovers" } },
+    };
+
+    expect(buildShowdownTeam([holdingNothing])[0].item).toBe("");
+    expect(buildShowdownTeam([holding])[0].item).toBe("Leftovers");
+  });
+
+  it("throws ItemNotFoundError for a held item Showdown doesn't recognize", () => {
+    const pokemon = {
+      ...buildTeamPokemon(),
+      heldItem: { id: 1, type: "Hold items", description: "", name: { english: "Not A Real Item" } },
+    };
+
+    expect(() => buildShowdownTeam([pokemon])).toThrow(ItemNotFoundError);
   });
 
   it("throws SpeciesNotFoundError for a species Showdown doesn't recognize", () => {

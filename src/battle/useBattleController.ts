@@ -1,12 +1,13 @@
 import { PRNG } from "@pkmn/sim";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Move } from "../api/pikaserve";
+import type { Item, Move } from "../api/pikaserve";
 import { getSelectedTrainerAiId } from "../api/trainerAiSetting";
 import type { PartySlot } from "../components/battle/partySlot";
 import type { CatchAttemptResult } from "../encounter/catchPokemon";
 import { MAX_ACTIVE_TEAM_SIZE, gameStateEngine } from "../engine/gameStateEngine";
 import type { BattleReplayLog, BattleSeed, OwnedTM, TeamPokemon } from "../engine/gameStateEngine";
 import type { StageType } from "../engine/stage";
+import { awardCatchHeldItems, awardVictoryHeldItems } from "../engine/heldItemRewards";
 import { awardCatchTM, awardVictoryTMs } from "../engine/tmRewards";
 import { battleNickname } from "./battleNickname";
 import type { BattleParticipant, BattleRequest, ChoiceProvider } from "./battleSimulator";
@@ -105,6 +106,8 @@ export interface UseBattleControllerResult {
   advance: () => void;
   /** TM(s) awarded for the current victory/catch, if any. Empty outside those phases. */
   awardedTMs: OwnedTM[];
+  /** Held item(s) awarded for the current victory/catch, if any. Empty outside those phases. */
+  awardedItems: Item[];
 }
 
 interface Snapshot {
@@ -202,6 +205,7 @@ export function useBattleController(
   const [turnEvents, setTurnEvents] = useState<string[]>([]);
   const [battleLog, setBattleLog] = useState<string[]>([]);
   const [awardedTMs, setAwardedTMs] = useState<OwnedTM[]>([]);
+  const [awardedItems, setAwardedItems] = useState<Item[]>([]);
   const [snapshot, setSnapshot] = useState<Snapshot>(() => ({
     playerHp: playerHpRef.current,
     playerActiveIndex: 0,
@@ -580,6 +584,7 @@ export function useBattleController(
         // the battle ends here without a further chooseP1 call, so we drive the UI transition ourselves.
         gameStateEngine.addCaughtPokemon(opponent.team[0]);
         setAwardedTMs(await awardCatchTM());
+        setAwardedItems(await awardCatchHeldItems());
         setPhase("caught");
         return;
       }
@@ -612,6 +617,7 @@ export function useBattleController(
 
       if (result.winner === "p1") {
         setAwardedTMs(await awardVictoryTMs());
+        setAwardedItems(await awardVictoryHeldItems());
       }
 
       const events = flushEvents();
@@ -761,5 +767,6 @@ export function useBattleController(
     submitRun,
     advance,
     awardedTMs,
+    awardedItems,
   };
 }

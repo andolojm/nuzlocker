@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Move } from "../../api/pikaserve";
+import type { Item, Move } from "../../api/pikaserve";
 import type { StatusCode } from "../../battle/formatBattleLine";
 import type { Combatant } from "../../battle/trainerAi";
 import { compareSpeed, toStatTable } from "../../battle/trainerAi";
@@ -46,6 +46,7 @@ export interface BattleScreenProps {
   onAdvance: () => void;
   onAction?: (action: BattleAction) => void;
   awardedTMs: OwnedTM[];
+  awardedItems: Item[];
 }
 
 // Trainer battles don't allow catching or running; only wild encounters do.
@@ -76,6 +77,7 @@ export function BattleScreen({
   onAdvance,
   onAction,
   awardedTMs,
+  awardedItems,
 }: BattleScreenProps) {
   const [openMenu, setOpenMenu] = useState<OpenMenu>("none");
   const [submenuOpenedViaKeyboard, setSubmenuOpenedViaKeyboard] = useState(false);
@@ -138,7 +140,7 @@ export function BattleScreen({
   }
 
   return (
-    <div className="relative overflow-hidden rounded-xl border-4 border-slate-800 shadow-xl max-[750px]:-mx-6">
+    <div className="relative overflow-hidden rounded-xl border-4 border-slate-800 shadow-xl">
       <div className="relative h-110 bg-transparent">
         <div className="absolute top-4 left-4">
           {stageType === StageType.Battle && (
@@ -249,7 +251,9 @@ export function BattleScreen({
         )}
       </div>
 
-      {isOutcomePhase && <OutcomeModal variant={phase} onAdvance={onAdvance} awardedTMs={awardedTMs} />}
+      {isOutcomePhase && (
+        <OutcomeModal variant={phase} onAdvance={onAdvance} awardedTMs={awardedTMs} awardedItems={awardedItems} />
+      )}
       {showPlayerInfo && <PokemonInfoModal pokemon={playerPokemon} onClose={() => setShowPlayerInfo(false)} />}
       {showOpponentInfo && (
         <PokemonInfoModal

@@ -29,6 +29,14 @@ e.g. Partner Pikachu, are not represented since this pokedex has no alternate-fo
 entries (national dex 1–898) were matched by id with zero gaps and zero name mismatches as of the
 data pulled 2026-08-15.
 
+## Hold items
+
+`items.json` entries with `type: "Hold items"` are the pool the game hands out and lets a Pokémon
+carry into battle. Not all of them are usable: some have no `@pkmn/sim` entry at all, and Mega Stones
+and Z-Crystals do nothing in gen 9. Those are listed by id in `src/api/heldItems.ts`, which
+`heldItems.test.ts` re-derives from the sim's own data — so a data refresh that shifts the set fails
+that test rather than quietly handing out items that do nothing.
+
 ## abilities.json
 
 Not from Purukitto/pokemon-data.json (which only ships ability *names* per species, no

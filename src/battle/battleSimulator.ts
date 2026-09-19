@@ -89,6 +89,13 @@ export class MoveNotFoundError extends Error {
   }
 }
 
+export class ItemNotFoundError extends Error {
+  constructor(name: string) {
+    super(`Could not find a Pokémon Showdown item matching "${name}"`);
+    this.name = "ItemNotFoundError";
+  }
+}
+
 // Every team member is treated as 0 EVs when converted to a Showdown team, since TeamPokemon
 // has no per-Pokemon EV field yet. Exported for tests; UI code should NOT import this — this
 // module pulls in @pkmn/sim, which must stay out of the browser bundle (duplicate the value
@@ -106,6 +113,14 @@ function toShowdownIVs(ivs: TeamPokemon["ivs"]): PokemonSet["ivs"] {
   };
 }
 
+/** The held item's Showdown name, or "" for a Pokemon holding nothing. */
+function showdownItem(pokemon: TeamPokemon): string {
+  if (!pokemon.heldItem) return "";
+  const dexItem = Dex.items.get(pokemon.heldItem.name.english);
+  if (!dexItem.exists) throw new ItemNotFoundError(pokemon.heldItem.name.english);
+  return dexItem.name;
+}
+
 function toPokemonSet(pokemon: TeamPokemon, nickname: string): PokemonSet {
   const species = Dex.species.get(pokemon.name.english);
   if (!species.exists) throw new SpeciesNotFoundError(pokemon.name.english);
@@ -119,7 +134,7 @@ function toPokemonSet(pokemon: TeamPokemon, nickname: string): PokemonSet {
   return {
     name: nickname,
     species: species.name,
-    item: "",
+    item: showdownItem(pokemon),
     // The rolled ability (any non-hidden ability, not necessarily one this species can legally
     // have) — gen9customgame runs no ability legality check, so the sim just uses it. Falls back
     // to the species default only for a Pokemon created before abilities existed.
