@@ -4,6 +4,7 @@ import { gameStateEngine } from "../../engine/gameStateEngine";
 import { useGameState } from "../../engine/useGameState";
 import { AbilityLine } from "./AbilityLine";
 import { EvolutionChain } from "./EvolutionChain";
+import { HeldItemLine } from "./HeldItemLine";
 import { MoveTile } from "./MoveTile";
 import { PokemonStatsList } from "./PokemonStatsList";
 import { TMSelectModal } from "./TMSelectModal";
@@ -132,16 +133,7 @@ export function PokemonInfoModal({
             ) : (
               <AbilityLine ability={displayPokemon.ability} />
             )}
-            {!isOpponent && (
-              <p className="text-xs min-[600px]:text-sm">
-                <span className="font-semibold">Holding:</span>{" "}
-                {displayPokemon.heldItem ? (
-                  displayPokemon.heldItem.name.english
-                ) : (
-                  <span className="italic text-slate-600">nothing</span>
-                )}
-              </p>
-            )}
+            {!isOpponent && <HeldItemLine heldItem={displayPokemon.heldItem} />}
           </div>
 
           <h3 className="mt-2 font-semibold">Moves</h3>

@@ -24,3 +24,7 @@ export function bulbapediaPokemonUrl(name: string): string {
 export function bulbapediaAbilityUrl(name: string): string {
   return `https://bulbapedia.bulbagarden.net/wiki/${name.replace(/ /g, "_")}_(Ability)`;
 }
+
+export function bulbapediaItemUrl(name: string): string {
+  return `https://bulbapedia.bulbagarden.net/wiki/${name.replace(/ /g, "_")}`;
+}
