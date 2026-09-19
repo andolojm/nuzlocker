@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { NavLink } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import { ResetConfirmModal } from "./ResetConfirmModal";
 
 export interface HeaderProps {
@@ -29,7 +29,9 @@ export function Header({ onReset }: HeaderProps) {
   return (
     <header className="border-b border-slate-200 bg-white">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-3">
-        <span className="text-lg font-extrabold tracking-tight text-slate-900">PokeRally</span>
+        <Link to="/" className="text-lg font-extrabold tracking-tight text-slate-900">
+          PokeRally
+        </Link>
 
         <nav aria-label="Main" className="hidden items-center gap-1 sm:flex">
           <NavLink to="/" end className={linkClassName}>
