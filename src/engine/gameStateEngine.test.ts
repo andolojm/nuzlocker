@@ -403,6 +403,37 @@ describe("GameStateEngine", () => {
       expect(() => engine.setHeldItem(notOnTeam, engine.current.bag[0])).toThrow(/not in the alive party/);
     });
 
+    it("consumeHeldItem destroys the item instead of returning it to the bag", () => {
+      const engine = new GameStateEngine();
+      engine.addPokemon(buildTeamPokemon(), 1);
+      engine.addItem(leftovers);
+      const [infernape] = engine.current.pokemon.alive;
+      const holding = engine.setHeldItem(infernape, engine.current.bag[0]);
+
+      const consumed = engine.consumeHeldItem(holding);
+
+      expect(consumed.heldItem).toBeUndefined();
+      expect(consumed.active).toBe(1);
+      expect(engine.current.bag).toEqual([]);
+      expect(engine.current.pokemon.alive[0]).toBe(consumed);
+    });
+
+    it("consumeHeldItem is a no-op when nothing is held, so a replayed log can't double-consume", () => {
+      const engine = new GameStateEngine();
+      engine.addPokemon(buildTeamPokemon());
+      const [infernape] = engine.current.pokemon.alive;
+
+      expect(engine.consumeHeldItem(infernape)).toBe(infernape);
+      expect(engine.current.pokemon.alive[0]).toBe(infernape);
+    });
+
+    it("consumeHeldItem throws when the pokemon is not in the alive party", () => {
+      const engine = new GameStateEngine();
+      const notOnTeam: AlivePokemon = { ...buildTeamPokemon(), heldItem: leftovers, active: undefined };
+
+      expect(() => engine.consumeHeldItem(notOnTeam)).toThrow(/not in the alive party/);
+    });
+
     it("throws when the item is not in the bag, leaving the bag untouched", () => {
       const engine = new GameStateEngine();
       engine.addPokemon(buildTeamPokemon());

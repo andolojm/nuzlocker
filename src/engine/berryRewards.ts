@@ -3,8 +3,8 @@ import type { Item } from "../api/pikaserve";
 import { gameStateEngine } from "./gameStateEngine";
 import type { GameStateEngine } from "./gameStateEngine";
 
-/** Matches VICTORY_HELD_ITEM_COUNT — a win hands out as many berries as it does held items. */
-export const VICTORY_BERRY_COUNT = 2;
+/** More than the TM and held-item counts, since a berry is spent the first time it goes off. */
+export const VICTORY_BERRY_COUNT = 3;
 /** Matches CATCH_HELD_ITEM_COUNT. */
 export const CATCH_BERRY_COUNT = 1;
 

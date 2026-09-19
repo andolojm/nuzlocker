@@ -306,6 +306,27 @@ export class GameStateEngine {
   }
 
   /**
+   * Destroys whatever `pokemon` is holding — for an item used up in battle, which unlike
+   * setHeldItem(pokemon, null) does *not* go back in the bag. A no-op (returning `pokemon`
+   * unchanged) when it holds nothing, so replaying a battle's log can't double-consume.
+   */
+  consumeHeldItem(pokemon: AlivePokemon): AlivePokemon {
+    const index = this.gameState.pokemon.alive.indexOf(pokemon);
+    if (index === -1) {
+      throw new Error(`Pokemon "${pokemon.name.english}" is not in the alive party`);
+    }
+    if (!pokemon.heldItem) return pokemon;
+
+    const { heldItem: _consumed, ...rest } = pokemon;
+    const consumed = rest as AlivePokemon;
+    const alive = [...this.gameState.pokemon.alive];
+    alive[index] = consumed;
+
+    this.commit({ ...this.gameState, pokemon: { ...this.gameState.pokemon, alive } });
+    return consumed;
+  }
+
+  /**
    * Sets `pokemon`'s level directly. `pokemon` must be the exact live reference currently in the
    * alive party (as with markPokemonDead/setActiveTeam/teachMove). Returns the new reference,
    * since callers holding their own copy of `pokemon` (e.g. local component state) need it to

@@ -1,5 +1,6 @@
 import { PRNG } from "@pkmn/sim";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { BERRY_TYPE } from "../api/berries";
 import type { Item, Move } from "../api/pikaserve";
 import { getSelectedTrainerAiId } from "../api/trainerAiSetting";
 import type { PartySlot } from "../components/battle/partySlot";
@@ -63,6 +64,18 @@ export function catchFailureMessage(shakes: number): string {
 export interface HpValue {
   current: number;
   max: number;
+}
+
+/**
+ * For a `|-enditem|` line, which Pokemon lost the item and what it was — null for any other line.
+ * The subject is always the Pokemon the item left, never one that took it: plucking the opponent's
+ * berry reports `|-enditem|p2a: Foe|Oran Berry|[from] stealeat|[of] p1a: Mine`, so reading the
+ * subject (rather than the actor) leaves the plucker's own berry alone.
+ */
+export function parseItemLoss(line: string): { ident: string; item: string } | null {
+  const parts = line.split("|");
+  if (parts[1] !== "-enditem" || !parts[2] || !parts[3]) return null;
+  return { ident: parts[2], item: parts[3] };
 }
 
 /**
@@ -460,6 +473,22 @@ export function useBattleController(
         const index = isPlayer ? playerActiveIndexRef.current : opponentActiveIndexRef.current;
         const hp = parseHpField(parts[3] ?? "", team[index].base.HP);
         (isPlayer ? playerHpRef : opponentHpRef).current[index] = hp;
+        return;
+      }
+
+      // A berry is gone for good once it leaves: eaten, burned off by Incinerate, knocked off.
+      // Every other held item survives the battle, so only berries are cleared here. See
+      // parseItemLoss for why this can't consume the berry of a Pokemon that plucked someone else's.
+      if (type === "-enditem") {
+        const loss = parseItemLoss(line);
+        const resolved = loss && resolveIdent(loss.ident);
+        if (!loss || !resolved?.isPlayer) return;
+
+        const teamPokemon = player.team[resolved.index];
+        const live = gameStateEngine.current.pokemon.alive.find((p) => p.id === teamPokemon.id);
+        if (live?.heldItem?.type === BERRY_TYPE && live.heldItem.name.english === loss.item) {
+          gameStateEngine.consumeHeldItem(live);
+        }
         return;
       }
 

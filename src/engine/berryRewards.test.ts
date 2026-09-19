@@ -27,13 +27,18 @@ describe("awardVictoryBerries / awardCatchBerries", () => {
     const randomSpy = jest
       .spyOn(PikaLocal, "getRandomBerry")
       .mockResolvedValueOnce(buildBerry())
-      .mockResolvedValueOnce(buildBerry({ id: 157, name: { english: "Lum Berry" } }));
+      .mockResolvedValueOnce(buildBerry({ id: 157, name: { english: "Lum Berry" } }))
+      .mockResolvedValueOnce(buildBerry({ id: 201, name: { english: "Liechi Berry" } }));
 
     const awarded = await awardVictoryBerries(engine);
 
     expect(randomSpy).toHaveBeenCalledTimes(VICTORY_BERRY_COUNT);
     expect(engine.current.bag).toEqual(awarded);
-    expect(engine.current.bag.map((berry) => berry.name.english)).toEqual(["Sitrus Berry", "Lum Berry"]);
+    expect(engine.current.bag.map((berry) => berry.name.english)).toEqual([
+      "Sitrus Berry",
+      "Lum Berry",
+      "Liechi Berry",
+    ]);
   });
 
   it("awardCatchBerries draws CATCH_BERRY_COUNT random berry/berries", async () => {

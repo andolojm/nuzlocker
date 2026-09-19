@@ -1,5 +1,5 @@
 import type { BattleRequest } from "./battleSimulator";
-import { catchFailureMessage, isForcedContinuation } from "./useBattleController";
+import { catchFailureMessage, isForcedContinuation, parseItemLoss } from "./useBattleController";
 
 function buildRequest(overrides: Partial<BattleRequest> = {}): BattleRequest {
   return {
@@ -50,5 +50,43 @@ describe("catchFailureMessage", () => {
 
   it("falls back to the 0-shake message for an out-of-range value", () => {
     expect(catchFailureMessage(99)).toBe(catchFailureMessage(0));
+  });
+});
+
+describe("parseItemLoss", () => {
+  it("reads the holder and item off an eaten berry", () => {
+    expect(parseItemLoss("|-enditem|p1a: Eiscue|Sitrus Berry|[eat]")).toEqual({
+      ident: "p1a: Eiscue",
+      item: "Sitrus Berry",
+    });
+  });
+
+  it("blames the Pokemon that lost a plucked berry, not the one that ate it", () => {
+    // The player's Pokemon is the `[of]` actor here: its own berry must not be touched.
+    const loss = parseItemLoss(
+      "|-enditem|p2a: Budew|Sitrus Berry|[from] stealeat|[move] Pluck|[of] p1a: Eiscue",
+    );
+
+    expect(loss).toEqual({ ident: "p2a: Budew", item: "Sitrus Berry" });
+  });
+
+  it("blames the holder when a berry is burned off or knocked off", () => {
+    expect(parseItemLoss("|-enditem|p1a: Eiscue|Tanga Berry|[from] move: Incinerate")?.ident).toBe("p1a: Eiscue");
+    expect(
+      parseItemLoss("|-enditem|p1a: Eiscue|Sitrus Berry|[from] move: Knock Off|[of] p2a: Budew")?.ident,
+    ).toBe("p1a: Eiscue");
+  });
+
+  it("reads a spent hold item too, leaving the berry check to the caller", () => {
+    expect(parseItemLoss("|-enditem|p1a: Steelix|Steel Gem|[from] gem")).toEqual({
+      ident: "p1a: Steelix",
+      item: "Steel Gem",
+    });
+  });
+
+  it("ignores any other line", () => {
+    expect(parseItemLoss("|-item|p1a: Eiscue|Air Balloon")).toBeNull();
+    expect(parseItemLoss("|move|p1a: Eiscue|Pluck|p2a: Budew")).toBeNull();
+    expect(parseItemLoss("|-enditem|p1a: Eiscue")).toBeNull();
   });
 });
