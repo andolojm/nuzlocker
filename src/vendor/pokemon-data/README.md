@@ -29,6 +29,19 @@ e.g. Partner Pikachu, are not represented since this pokedex has no alternate-fo
 entries (national dex 1–898) were matched by id with zero gaps and zero name mismatches as of the
 data pulled 2026-08-15.
 
+## hires images
+
+`pokedex.json` entries for ids 810–898 (gen 8) deviate from upstream: their `image.hires` points at
+the same URL as `image.thumbnail`. Upstream's `images/pokedex/hires/*.png` for that range are
+malformed palette PNGs with no alpha channel, so they render on an opaque white box (Eiscue is the
+obvious one), and Morpeko (877) has no `hires` entry at all. For those 89 — and only those — the
+thumbnail *is* the full-size 475×475 transparent official artwork, identical to PokeAPI's
+`official-artwork` image, while gen 1–7 thumbnails are 100×100. Ids 1–809 are untouched.
+
+`pokedexImages.test.ts` asserts the swap stays in place, so a refresh that reintroduces the broken
+URLs fails there. Re-check upstream on a refresh: if they fix their gen 8 hires art, this deviation
+can be dropped.
+
 ## Hold items
 
 `items.json` entries with `type: "Hold items"` are the pool the game hands out and lets a Pokémon
