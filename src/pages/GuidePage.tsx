@@ -69,6 +69,27 @@ export function GuidePage() {
       </section>
 
       <section className="mt-6">
+        <h2 className="text-lg font-bold text-slate-900">Playing a run</h2>
+        <p className="mt-1 text-sm text-slate-600">
+          A run is a series of stages, shown in the stepper at the top of the Play page. Each one is
+          either a wild encounter or a trainer battle:
+        </p>
+        <ul className="mt-3 list-disc space-y-1.5 pl-5 text-sm text-slate-700">
+          <li>At a wild encounter, catch the Pokémon to add it to your team, or run to skip it.</li>
+          <li>At a trainer battle, your active team fights the trainer's Pokémon one after another.</li>
+          <li>
+            Before either, pick your active team from everyone you've caught so far. Every stage has
+            a level cap, so a low-level catch can't be over-trained to steamroll what's ahead.
+          </li>
+          <li>
+            If one of your Pokémon faints, it moves to your Dead list and can't be sent out again for
+            the rest of the run: the Nuzlocke rule this app is named for.
+          </li>
+          <li>Clear every stage with at least one Pokémon standing and you win the run.</li>
+        </ul>
+      </section>
+
+      <section className="mt-6">
         <h2 className="text-lg font-bold text-slate-900">Scoring</h2>
         <p className="mt-1 text-sm text-slate-600">
           Your current run keeps a running score, shown in the header. It changes as follows:
