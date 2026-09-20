@@ -1,14 +1,21 @@
 import { Dex } from "@pkmn/sim";
 import type { StatusCode } from "../formatBattleLine";
+import type { SpecContext } from "./movePower";
+import { resolveDamageSpec } from "./movePower";
+import type { BoostReading } from "./statMath";
 import { estimatedStat } from "./statMath";
 import type { Combatant, FieldConditions, StatKey } from "./types";
 
 export type MoveData = ReturnType<typeof Dex.moves.get>;
 
-/** Stand-in base power for a damaging move whose power the Dex reports as 0/variable (Seismic Toss, Gyro Ball, Return, ...). */
+/** Stand-in base power for a damaging move whose power neither the Dex nor movePower can resolve. */
 export const NO_POWER_MOVE_BASELINE = 60;
 /** Mid-range damage roll — the scoring here is a heuristic, not an exact Showdown roll. */
 export const AVERAGE_DAMAGE_ROLL = 0.925;
+/** Crit chance for a spec that doesn't carry one — Showdown's baseline 1/24. */
+export const DEFAULT_CRIT_CHANCE = 1 / 24;
+/** Damage multiplier on a critical hit, which also ignores the boost stages working against the attacker. */
+export const CRIT_MULTIPLIER = 1.5;
 
 const STAB_DOUBLING_ABILITIES = new Set(["Adaptability"]);
 
@@ -105,35 +112,46 @@ export interface DamageSpec {
   category: string;
   basePower: number;
   multihit?: number | number[];
+  /** 0..1 chance this move lands a critical hit. Omitted is treated as the ordinary 1/24. */
+  critChance?: number;
 }
 
-/** Estimated raw damage (HP points), not a percentage — this is a scoring heuristic, not an exact Showdown damage roll. */
+/**
+ * Estimated raw damage (HP points), not a percentage — this is a scoring heuristic, not an exact
+ * Showdown damage roll. The move's power and type are resolved against the current board first, so
+ * the state-dependent ones (Gyro Ball, Eruption, Hex, Weather Ball) are priced at what they would
+ * actually hit for rather than at a flat stand-in.
+ */
 export function computeRawDamage(
   moveData: MoveData,
   attacker: Combatant,
   defender: Combatant,
   field: FieldConditions,
+  context: SpecContext = {},
 ): number {
-  return computeSpecDamage(moveData, attacker, defender, field);
+  return computeSpecDamage(resolveDamageSpec(moveData, attacker, defender, field, context), attacker, defender, field);
 }
 
-/** computeRawDamage over a bare {type, category, basePower} spec rather than a full Dex move. */
-export function computeSpecDamage(
+/** Damage for one outcome — an ordinary hit or a critical one — before the two are blended by crit chance. */
+function computeSingleOutcome(
   spec: DamageSpec,
   attacker: Combatant,
   defender: Combatant,
   field: FieldConditions,
+  isCrit: boolean,
 ): number {
   const isPhysical = spec.category === "Physical";
   const atkKey: StatKey = isPhysical ? "atk" : "spa";
   const defKey: StatKey = isPhysical ? "def" : "spd";
+  const attackReading: BoostReading = isCrit ? "critAttack" : "normal";
+  const defenseReading: BoostReading = isCrit ? "critDefense" : "normal";
 
   const attackStat =
-    estimatedStat(attacker, atkKey) *
+    estimatedStat(attacker, atkKey, attackReading) *
     abilityOffenseStatMultiplier(attacker.ability, spec.category) *
     abilityStatusAttackMultiplier(attacker.ability, attacker.status) *
     burnMultiplier(spec.category, attacker.status, attacker.ability);
-  const defenseStat = estimatedStat(defender, defKey);
+  const defenseStat = estimatedStat(defender, defKey, defenseReading);
 
   const power =
     (spec.basePower || NO_POWER_MOVE_BASELINE) *
@@ -151,6 +169,24 @@ export function computeSpecDamage(
     typeMultiplier *
     weatherMultiplier(spec.type, field.weather) *
     terrainMultiplier(spec.type, field.terrain) *
-    AVERAGE_DAMAGE_ROLL
+    AVERAGE_DAMAGE_ROLL *
+    (isCrit ? CRIT_MULTIPLIER : 1)
   );
+}
+
+/**
+ * computeRawDamage over a bare {type, category, basePower} spec rather than a full Dex move.
+ * Critical hits are folded in as an expectation, so a high-crit move (Stone Edge, Night Slash)
+ * prices above its base power and a defensively boosted wall gets respected slightly less.
+ */
+export function computeSpecDamage(
+  spec: DamageSpec,
+  attacker: Combatant,
+  defender: Combatant,
+  field: FieldConditions,
+): number {
+  const normal = computeSingleOutcome(spec, attacker, defender, field, false);
+  const critChance = Math.max(0, Math.min(1, spec.critChance ?? DEFAULT_CRIT_CHANCE));
+  if (critChance <= 0) return normal;
+  return normal * (1 - critChance) + computeSingleOutcome(spec, attacker, defender, field, true) * critChance;
 }

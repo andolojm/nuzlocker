@@ -41,6 +41,12 @@ export function toStatTable(stats: {
 export interface Combatant {
   types: string[];
   level: number;
+  /**
+   * Species name, for the handful of moves whose power reads off the Dex entry rather than off
+   * battle state (Low Kick, Heavy Slam). Public information in a real battle, so it is known for
+   * both sides; absent only leaves those moves on their generic fallback power.
+   */
+  species?: string;
   /** Species base stats (no IVs/EVs baked in). */
   baseStats: StatTable;
   /**
@@ -83,6 +89,17 @@ export interface FieldConditions {
   terrain: string | null;
   /** Entry hazards on the defender's side — the side the attacker's own hazard moves would affect. */
   defenderHazards: HazardState;
+  /** Entry hazards on the attacker's own side — what its own switch-ins would walk into. Omitted means none are tracked. */
+  attackerHazards?: HazardState;
+}
+
+/** A benched teammate the AI could switch to, paired with the request choice that brings it in. */
+export interface BenchOption {
+  /** The `switch N` string to return from `chooseMove` to bring this Pokemon in. */
+  choice: string;
+  combatant: Combatant;
+  /** Move names this teammate knows. Always fully known — this is the AI's own team. */
+  moves: string[];
 }
 
 /**
@@ -96,6 +113,18 @@ export interface TrainerAiContext {
   attacker: Combatant;
   /** The player's active Pokemon. */
   defender: Combatant;
+  /**
+   * The AI's own healthy benched teammates — one per `request.switches` entry, carrying the state
+   * needed to judge the matchup each would walk into. Omitted or empty means there is no switch to
+   * evaluate and a move has to be picked.
+   */
+  bench?: BenchOption[];
+  /**
+   * Healthy Pokemon left on the player's side, the active one included. Drives what a hazard is
+   * worth: with nobody left to switch in, setting one is a wasted turn. Omitted means unknown, and
+   * hazards fall back to a flat value.
+   */
+  defenderPartyRemaining?: number;
   field: FieldConditions;
   /** Injectable for deterministic tests; defaults to Math.random. */
   rng?: () => number;

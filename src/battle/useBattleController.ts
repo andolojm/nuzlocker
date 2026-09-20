@@ -17,7 +17,7 @@ import type { BattleParticipant, BattleRequest, ChoiceProvider } from "./battleS
 import { ATTEMPT_CATCH, ATTEMPT_RUN, BattleSimulator } from "./battleSimulator";
 import { formatBattleLine, parseStatusField, rawIdentName } from "./formatBattleLine";
 import type { StatusCode } from "./formatBattleLine";
-import type { Boosts, Combatant, FieldConditions, HazardState } from "./trainerAi";
+import type { BenchOption, Boosts, Combatant, FieldConditions, HazardState } from "./trainerAi";
 import { NO_HAZARDS, clampBoost, getTrainerAiImplementation, toStatTable } from "./trainerAi";
 
 export type { Boosts };
@@ -206,6 +206,8 @@ export function useBattleController(
   const terrainRef = useRef<string | null>(null);
   /** Entry hazards on the player's side of the field — only ever set by the opposing trainer's own hazard moves. */
   const playerHazardsRef = useRef<HazardState>(NO_HAZARDS);
+  /** Entry hazards on the opposing trainer's side, so its own AI can price what a switch-in would walk into. */
+  const opponentHazardsRef = useRef<HazardState>(NO_HAZARDS);
   const logBufferRef = useRef<string[]>([]);
   const turnNumberRef = useRef(1);
   /** Which Pokemon were active at the *start* of the turn currently being buffered, for the next battle log header. */
@@ -376,18 +378,20 @@ export function useBattleController(
 
       if (type === "-sidestart" || type === "-sideend") {
         const ident = parts[2] ?? "";
-        if (!ident.startsWith("p1")) return;
         const condition = (parts[3] ?? "").replace(/^move: /, "");
         const isStart = type === "-sidestart";
-        const current = playerHazardsRef.current;
+        // Both sides are tracked: the player's side is what the opposing AI's hazard moves target,
+        // and its own side is what its switch-ins would have to walk through.
+        const hazardsRef = ident.startsWith("p1") ? playerHazardsRef : opponentHazardsRef;
+        const current = hazardsRef.current;
         if (condition === "Stealth Rock") {
-          playerHazardsRef.current = { ...current, stealthRock: isStart };
+          hazardsRef.current = { ...current, stealthRock: isStart };
         } else if (condition === "Spikes") {
-          playerHazardsRef.current = { ...current, spikes: isStart ? Math.min(current.spikes + 1, 3) : 0 };
+          hazardsRef.current = { ...current, spikes: isStart ? Math.min(current.spikes + 1, 3) : 0 };
         } else if (condition === "Toxic Spikes") {
-          playerHazardsRef.current = { ...current, toxicSpikes: isStart ? Math.min(current.toxicSpikes + 1, 2) : 0 };
+          hazardsRef.current = { ...current, toxicSpikes: isStart ? Math.min(current.toxicSpikes + 1, 2) : 0 };
         } else if (condition === "Sticky Web") {
-          playerHazardsRef.current = { ...current, stickyWeb: isStart };
+          hazardsRef.current = { ...current, stickyWeb: isStart };
         }
         return;
       }
@@ -579,6 +583,7 @@ export function useBattleController(
       const attacker: Combatant = {
         types: attackerPokemon.type,
         level: attackerPokemon.level,
+        species: attackerPokemon.name.english,
         baseStats: toStatTable(attackerPokemon.base),
         ivs: toStatTable(attackerPokemon.ivs),
         boosts: opponentBoostsRef.current[attackerIndex],
@@ -591,6 +596,8 @@ export function useBattleController(
       const defender: Combatant = {
         types: defenderPokemon.type,
         level: defenderPokemon.level,
+        // Species is public the moment a Pokemon is sent out, unlike its IVs below.
+        species: defenderPokemon.name.english,
         baseStats: toStatTable(defenderPokemon.base),
         // No `ivs` here: the trainer AI doesn't get to know the player's exact IVs, only the
         // min..max range its own stat math derives from base stats + level.
@@ -602,14 +609,54 @@ export function useBattleController(
         knownMoves: playerRevealedMovesRef.current[defenderIndex],
       };
 
+      // The AI's own bench, matched to the request's switch options by the nickname Showdown
+      // identifies them with — `switch N` indexes the sim's side array, which is not the team
+      // array's order. Its own team is fully known, IVs and movesets included.
+      const bench: BenchOption[] = request.switches.flatMap((option) => {
+        const index = opponent.team.findIndex((_, i) => battleNickname(opponent.team, i) === option.name);
+        if (index === -1) return [];
+        const hp = opponentHpRef.current[index];
+        const benched = opponent.team[index];
+        return [
+          {
+            choice: option.choice,
+            moves: benched.moves.map((move) => move.name.english),
+            combatant: {
+              types: benched.type,
+              level: benched.level,
+              species: benched.name.english,
+              baseStats: toStatTable(benched.base),
+              ivs: toStatTable(benched.ivs),
+              // A Pokemon on the bench has no stat stages: they are shed on the way out.
+              boosts: {},
+              currentHp: hp.current,
+              maxHp: hp.max,
+              status: opponentStatusRef.current[index],
+              ability: benched.ability,
+            },
+          },
+        ];
+      });
+
       const field: FieldConditions = {
         weather: weatherRef.current,
         terrain: terrainRef.current,
         defenderHazards: playerHazardsRef.current,
+        attackerHazards: opponentHazardsRef.current,
       };
 
+      const defenderPartyRemaining = player.team.filter((_, index) => playerHpRef.current[index].current > 0).length;
+
       const trainerAi = getTrainerAiImplementation(getSelectedTrainerAiId());
-      return trainerAi.chooseMove({ request, attacker, defender, field, rng: () => auxPrng.random() });
+      return trainerAi.chooseMove({
+        request,
+        attacker,
+        defender,
+        bench,
+        defenderPartyRemaining,
+        field,
+        rng: () => auxPrng.random(),
+      });
     };
 
     async function handleCatchAttempt(result: CatchAttemptResult) {

@@ -118,8 +118,11 @@ describe("chooseTrainerMove", () => {
 
     const choice = chooseTrainerMove({
       request,
+      // 60 Def leaves Tackle around 23% — middling, with enough room under the flat status baseline
+      // that the case doesn't flip on a small change to the shared damage math (the original 40 Def
+      // sat within half a point of the baseline, and folding crit chance in was enough to cross it).
+      defender: buildCombatant({ baseStats: { ...EVEN_STATS, def: 60 } }),
       attacker: buildCombatant({ types: ["Normal"] }),
-      defender: buildCombatant({ baseStats: { ...EVEN_STATS, def: 40 } }),
       field: buildField(),
       rng: noJitter,
     });

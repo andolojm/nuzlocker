@@ -30,12 +30,25 @@ export function accuracyStageMultiplier(stage: number): number {
   return clamped >= 0 ? (3 + clamped) / 3 : 3 / (3 - clamped);
 }
 
+/**
+ * How a stat's boost stage is read. "normal" uses it as-is; a critical hit ignores the stages that
+ * would work against the attacker, so it reads offensive stats with negatives clamped away and
+ * defensive stats with positives clamped away.
+ */
+export type BoostReading = "normal" | "critAttack" | "critDefense";
+
+function readBoostStage(stage: number, reading: BoostReading): number {
+  if (reading === "critAttack") return Math.max(stage, 0);
+  if (reading === "critDefense") return Math.min(stage, 0);
+  return stage;
+}
+
 /** Best single-value estimate of a stat: exact when IVs are known, otherwise the midpoint of the 0..31 IV range. */
-export function estimatedStat(combatant: Combatant, key: StatKey): number {
+export function estimatedStat(combatant: Combatant, key: StatKey, reading: BoostReading = "normal"): number {
   const { min, max } = estimatedStatRange(combatant.baseStats, combatant.ivs, combatant.level, key);
   const midpoint = (min + max) / 2;
   if (key === "hp") return midpoint;
-  return midpoint * statStageMultiplier(combatant.boosts[key] ?? 0);
+  return midpoint * statStageMultiplier(readBoostStage(combatant.boosts[key] ?? 0, reading));
 }
 
 export function paralysisSpeedMultiplier(status: StatusCode | null): number {

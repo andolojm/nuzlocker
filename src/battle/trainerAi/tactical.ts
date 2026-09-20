@@ -1,6 +1,7 @@
 import { Dex } from "@pkmn/sim";
 import type { MoveOption } from "../battleSimulator";
 import type { StatusCode } from "../formatBattleLine";
+import { residualDamagePerTurn, residualFractionPerTurn, switchInHazardCost } from "./attrition";
 import type { DamageSpec, MoveData } from "./damageMath";
 import {
   computeRawDamage,
@@ -11,7 +12,14 @@ import {
   recoilFraction,
 } from "./damageMath";
 import { accuracyStageMultiplier, compareSpeed, statStageMultiplier } from "./statMath";
-import type { Combatant, FieldConditions, SpeedComparison, TrainerAiContext, TrainerAiImplementation } from "./types";
+import type {
+  BenchOption,
+  Combatant,
+  FieldConditions,
+  SpeedComparison,
+  TrainerAiContext,
+  TrainerAiImplementation,
+} from "./types";
 
 /*
  * Every score in this file is denominated in one unit: "percent of the opponent's max HP this turn
@@ -55,7 +63,18 @@ const GUARANTEED_KO_BONUS = 45;
 const LIKELY_KO_BONUS = 18;
 /** Score for a move known to fail outright. Below zero so that any other option — even a useless one — outranks a guaranteed wasted turn. */
 const KNOWN_FAILURE_SCORE = -1;
+/**
+ * Width of the tie-breaking wobble, as a fraction of the reference score below. Applied additively
+ * rather than multiplicatively: scaling each move's jitter by its own score gave a pair of
+ * equally-bad 4-point options a +-0.2 wobble, which resolved to the same option every single time.
+ */
 const JITTER_RANGE = 0.1;
+/** Floor on the score the jitter is sized against, so near-ties between weak moves still get shuffled. */
+const JITTER_REFERENCE_FLOOR = 10;
+/** Jittered scores are held above zero, so a real move can never fall below a known-failure score. */
+const JITTERED_SCORE_FLOOR = 0.01;
+/** Status damping when a guaranteed KO is available but the speed check is a coin flip rather than a win. */
+const KO_RANGE_SUPPRESSION = 0.5;
 /** Applied to any move down to its last PP, to discourage burning a move's final charge when a similarly-good alternative exists. */
 const LAST_PP_CONSERVATION_FACTOR = 0.7;
 /** Hyper Beam and friends give up the following turn; charge moves give up the current one. */
@@ -70,8 +89,18 @@ const STATUS_BASE_VALUE: Record<StatusCode, number> = {
   brn: 30,
   psn: 18,
 };
-/** Worth of setting one entry hazard. Deliberately modest: the payoff lands on a future Pokemon, not on this matchup. */
+/** Worth of setting one entry hazard against a full party. Deliberately modest: the payoff lands on a future Pokemon, not on this matchup. */
 const HAZARD_VALUE = 14;
+/** Switch-ins the player must still have left for a hazard to be worth its full value. */
+const HAZARD_FULL_VALUE_SWITCH_INS = 3;
+/** Turns a prospective switch-in is judged over, matching the payoff window setup and status are priced against. */
+const SWITCH_HORIZON_TURNS = 3;
+/** How far a switch must beat staying put before it is worth conceding a free turn to make. */
+const VOLUNTARY_SWITCH_MARGIN = 25;
+/** Turns to live at or below which the current matchup counts as one worth abandoning. */
+const LOSING_TURNS_TO_LIVE = 2;
+/** Charged to a switch-in that hazards plus the free turn would knock out on the way in. */
+const FAINTS_ON_ENTRY_PENALTY = 200;
 /** Worth of the volatiles this AI models well enough to price; anything absent falls back to UNMODELED_STATUS_VALUE. */
 const VOLATILE_VALUE: Record<string, number> = {
   leechseed: 30,
@@ -116,11 +145,13 @@ function turnsToDeplete(currentHp: number, damagePerTurn: number): number {
 }
 
 interface Horizon {
-  /** Incoming damage per turn as a fraction of the attacker's max HP. */
+  /** Incoming *attack* damage per turn as a fraction of the attacker's max HP — the part a Def/SpD boost actually reduces. */
   incomingFraction: number;
-  /** Turns the attacker survives the defender's best attack. */
+  /** Non-attack chip per turn (status ticks, weather) net of terrain healing, as a fraction of max HP. No stat boost touches it. */
+  residualFraction: number;
+  /** Turns the attacker survives the defender's best attack, residual chip included. */
   turnsToLive: number;
-  /** Turns the attacker needs to KO with its own best attack. */
+  /** Turns the attacker needs to KO with its own best attack, the defender's own residual chip included. */
   turnsToKo: number;
   /** Turns this matchup is expected to last — the window any status or setup has to pay off in. */
   expectedTurns: number;
@@ -130,13 +161,22 @@ interface Horizon {
   feelsSafe: boolean;
 }
 
+/**
+ * Builds the turn budget every time-dependent valuation is scaled against. Both turn counts fold in
+ * residual damage: a burned Pokemon standing in a sandstorm loses an eighth of its health per turn
+ * to things no attack accounts for, and reading that as three safe turns is how setup gets a
+ * Pokemon killed.
+ */
 function buildHorizon(attacker: Combatant, defender: Combatant, field: FieldConditions, bestDamage: number): Horizon {
   const incoming = estimateIncomingDamage(attacker, defender, field);
-  const turnsToLive = turnsToDeplete(attacker.currentHp, incoming);
-  const turnsToKo = turnsToDeplete(defender.currentHp, bestDamage);
+  const attackerResidual = residualDamagePerTurn(attacker, field);
+  const defenderResidual = residualDamagePerTurn(defender, field);
+  const turnsToLive = turnsToDeplete(attacker.currentHp, incoming + attackerResidual);
+  const turnsToKo = turnsToDeplete(defender.currentHp, bestDamage + defenderResidual);
   const expectedTurns = Math.min(turnsToLive, turnsToKo);
   return {
     incomingFraction: incoming / Math.max(attacker.maxHp, 1),
+    residualFraction: residualFractionPerTurn(attacker, field),
     turnsToLive,
     turnsToKo,
     expectedTurns,
@@ -260,10 +300,13 @@ function statusMoveWouldFail(
   attacker: Combatant,
   defender: Combatant,
   field: FieldConditions,
+  defenderPartyRemaining: number | undefined,
 ): boolean {
   const targetsFoe = moveData.target !== "self" && moveData.target !== "allySide";
 
   if (isHazardMoveRedundant(moveData.id, field.defenderHazards)) return true;
+  // Hazards with nobody left to switch in are a wasted turn as surely as a redundant layer is.
+  if (HAZARD_MOVE_IDS.has(moveData.id) && remainingSwitchIns(defenderPartyRemaining) === 0) return true;
   if (field.weather !== null && (WEATHER_MOVE_RESULT[moveData.id]?.includes(field.weather) ?? false)) return true;
   if (field.terrain !== null && TERRAIN_MOVE_RESULT[moveData.id] === field.terrain) return true;
   if (healFraction(moveData) > 0 && attacker.currentHp >= attacker.maxHp) return true;
@@ -307,18 +350,41 @@ function statusMoveWouldFail(
 // Matchup relevance
 // ---------------------------------------------------------------------------
 
-/** Which offensive stat the given Pokemon's revealed moves lean on, so debuffs and defensive setup target the stat that actually matters. */
-function preferredOffensiveStat(knownMoves: string[] | undefined): "atk" | "spa" | null {
-  if (!knownMoves || knownMoves.length === 0) return null;
+/**
+ * Sharpening exponent on the base-stat prior. A raw atk/(atk+spa) share reads a 130/45 attacker as
+ * only 74% physical; squaring reads it as 89%, which is much closer to how such a spread actually plays.
+ */
+const OFFENSIVE_PRIOR_EXPONENT = 2;
+/** Revealed damaging moves needed before what we have seen fully replaces the base-stat prior. */
+const OFFENSIVE_EVIDENCE_FULL = 2;
+/** Weight given to a revealed damaging move whose base power the Dex reports as variable. */
+const NO_POWER_FALLBACK_WEIGHT = 60;
+
+/**
+ * How physical a Pokemon looks from its base stats alone. This is the prior the AI leans on before
+ * the player has revealed anything — a 130 Atk / 45 SpA Pokemon is a physical attacker with very
+ * high probability, and treating that as a coin flip threw away information already in hand.
+ */
+function baseStatPhysicalShare(combatant: Combatant): number {
+  const atk = Math.pow(Math.max(combatant.baseStats.atk, 1), OFFENSIVE_PRIOR_EXPONENT);
+  const spa = Math.pow(Math.max(combatant.baseStats.spa, 1), OFFENSIVE_PRIOR_EXPONENT);
+  return atk / (atk + spa);
+}
+
+/** Base-power-weighted physical share of the damaging moves a Pokemon has actually shown us, plus how many that is. */
+function revealedPhysicalShare(knownMoves: string[] | undefined): { share: number; count: number } {
   let physical = 0;
   let special = 0;
-  for (const name of knownMoves) {
+  let count = 0;
+  for (const name of knownMoves ?? []) {
     const data = Dex.moves.get(name);
-    if (data.category === "Physical") physical++;
-    else if (data.category === "Special") special++;
+    if (data.category === "Physical") physical += data.basePower || NO_POWER_FALLBACK_WEIGHT;
+    else if (data.category === "Special") special += data.basePower || NO_POWER_FALLBACK_WEIGHT;
+    else continue;
+    count++;
   }
-  if (physical === special) return null;
-  return physical > special ? "atk" : "spa";
+  const total = physical + special;
+  return { share: total <= 0 ? 0.5 : physical / total, count };
 }
 
 interface OffensiveMix {
@@ -349,11 +415,17 @@ function defensiveDropRelevance(offense: OffensiveMix, stat: "def" | "spd"): num
   return offensiveShare(offense, stat === "def" ? "atk" : "spa");
 }
 
-/** 0..1 usefulness of blunting the defender's given offensive stat, judged from what it has actually shown us. */
+/**
+ * 0..1 usefulness of blunting the defender's given offensive stat. Blends what it has actually
+ * shown us with the prior its base stats imply, so an unrevealed Pokemon is still read as the
+ * attacker its spread says it is instead of defaulting to an uninformative 0.5.
+ */
 function offensiveDropRelevance(defender: Combatant, stat: "atk" | "spa"): number {
-  const leaning = preferredOffensiveStat(defender.knownMoves);
-  if (leaning === null) return 0.5;
-  return leaning === stat ? 0.9 : 0.1;
+  const prior = baseStatPhysicalShare(defender);
+  const revealed = revealedPhysicalShare(defender.knownMoves);
+  const confidence = Math.min(1, revealed.count / OFFENSIVE_EVIDENCE_FULL);
+  const physicalShare = confidence * revealed.share + (1 - confidence) * prior;
+  return stat === "atk" ? physicalShare : 1 - physicalShare;
 }
 
 // ---------------------------------------------------------------------------
@@ -468,12 +540,33 @@ function healingValue(moveData: MoveData, attacker: Combatant, horizon: Horizon)
   const restoredPercent = (Math.min(fraction * attacker.maxHp, missingHp) / attacker.maxHp) * 100;
   // Healing for less than the foe hits for is losing slowly — credit the net gain, with a small floor
   // so healing stays worth something when nothing better is available.
-  const netPercent = restoredPercent - horizon.incomingFraction * 100;
+  // Residual chip counts against the heal just as an attack does: recovering 50% while a toxic tick
+  // and a sandstorm take 19% back is a much thinner gain than the raw number suggests.
+  const netPercent = restoredPercent - (horizon.incomingFraction + Math.max(horizon.residualFraction, 0)) * 100;
   return Math.max(restoredPercent * 0.25, netPercent);
 }
 
-function fieldMoveValue(moveData: MoveData, field: FieldConditions): number {
-  if (HAZARD_MOVE_IDS.has(moveData.id)) return HAZARD_VALUE;
+/**
+ * Switch-ins the player has left to pay a hazard's toll. The Pokemon currently out has already
+ * paid whatever was down when it entered, so only the ones still on the bench count.
+ */
+function remainingSwitchIns(defenderPartyRemaining: number | undefined): number | null {
+  if (defenderPartyRemaining === undefined) return null;
+  return Math.max(0, defenderPartyRemaining - 1);
+}
+
+/**
+ * What a hazard is worth here. A flat value treated Stealth Rock against a full party and against
+ * a player down to their last Pokemon as the same move, when the second one does nothing at all.
+ */
+function hazardValue(defenderPartyRemaining: number | undefined): number {
+  const switchIns = remainingSwitchIns(defenderPartyRemaining);
+  if (switchIns === null) return HAZARD_VALUE;
+  return HAZARD_VALUE * Math.min(1, switchIns / HAZARD_FULL_VALUE_SWITCH_INS);
+}
+
+function fieldMoveValue(moveData: MoveData, field: FieldConditions, defenderPartyRemaining: number | undefined): number {
+  if (HAZARD_MOVE_IDS.has(moveData.id)) return hazardValue(defenderPartyRemaining);
   if (WEATHER_MOVE_RESULT[moveData.id] || TERRAIN_MOVE_RESULT[moveData.id]) {
     // Redundant cases are already screened out by statusMoveWouldFail; overwriting an existing
     // condition is worth less than setting one on an empty field.
@@ -491,8 +584,9 @@ function scoreStatusMove(
   offense: OffensiveMix,
   horizon: Horizon,
   bestDamagePercent: number,
+  defenderPartyRemaining: number | undefined,
 ): number {
-  if (statusMoveWouldFail(moveData, attacker, defender, field)) return KNOWN_FAILURE_SCORE;
+  if (statusMoveWouldFail(moveData, attacker, defender, field, defenderPartyRemaining)) return KNOWN_FAILURE_SCORE;
 
   let value = 0;
   if (moveData.status) value += statusInflictValue(moveData.status as StatusCode, defender, speed, horizon);
@@ -511,7 +605,7 @@ function scoreStatusMove(
         : debuffValue(boosts, defender, bestDamagePercent, offense, speed, horizon);
   }
   value += healingValue(moveData, attacker, horizon);
-  value += fieldMoveValue(moveData, field);
+  value += fieldMoveValue(moveData, field, defenderPartyRemaining);
 
   if (value <= 0) value = unmodeledStatusValue(bestDamagePercent);
 
@@ -520,21 +614,74 @@ function scoreStatusMove(
   value -= selfHpCostFraction(moveData, attacker) * 100;
 
   // Status moves miss too: the "basic" AI never charges Hypnosis or Will-O-Wisp for their accuracy.
-  return value * moveAccuracy(moveData, attacker, defender);
+  return value * moveAccuracy(moveData, attacker, defender, field);
 }
 
 // ---------------------------------------------------------------------------
 // Damaging move value
 // ---------------------------------------------------------------------------
 
-function moveAccuracy(moveData: MoveData, attacker: Combatant, defender: Combatant): number {
-  if (moveData.accuracy === true) return 1;
-  const stage = (attacker.boosts.accuracy ?? 0) - (defender.boosts.evasion ?? 0);
-  return Math.min(1, (moveData.accuracy / 100) * accuracyStageMultiplier(stage));
+/** Moves that simply cannot miss in the right weather, whatever the Dex lists their accuracy as. */
+const PERFECT_ACCURACY_WEATHER: Record<string, string[]> = {
+  thunder: ["RainDance"],
+  hurricane: ["RainDance"],
+  blizzard: ["Hail", "Snow"],
+};
+/** The flip side: the same moves are actively unreliable in sun. */
+const SUN_REDUCED_ACCURACY: Record<string, number> = { thunder: 50, hurricane: 50 };
+/** Abilities that switch accuracy checks off entirely, on either side of the hit. */
+const NO_GUARD_ABILITIES = new Set(["No Guard"]);
+
+/** Flat accuracy multipliers from the attacker's ability. Hustle only taxes physical moves. */
+function abilityAccuracyMultiplier(ability: string | undefined, moveData: MoveData): number {
+  if (ability === undefined) return 1;
+  if (ability === "Compound Eyes") return 1.3;
+  if (ability === "Victory Star") return 1.1;
+  if (ability === "Hustle" && moveData.category === "Physical") return 0.8;
+  return 1;
 }
 
-/** Fixed-damage moves (Seismic Toss, Night Shade, Dragon Rage) ignore the damage formula entirely. */
-function fixedDamage(moveData: MoveData, attacker: Combatant): number | null {
+/**
+ * 0..1 chance the move connects. Beyond the stage multiplier, this covers the cases where the Dex
+ * number is simply not the real one: a move that cannot miss in its weather, an OHKO move's
+ * level-scaled 30%, and the abilities that bend every accuracy check.
+ */
+function moveAccuracy(
+  moveData: MoveData,
+  attacker: Combatant,
+  defender: Combatant,
+  field: FieldConditions,
+): number {
+  const noGuard =
+    (attacker.ability !== undefined && NO_GUARD_ABILITIES.has(attacker.ability)) ||
+    (defender.ability !== undefined && NO_GUARD_ABILITIES.has(defender.ability));
+  if (noGuard) return 1;
+
+  if (moveData.ohko) {
+    // Fissure and friends flatly fail on a higher-level target, and otherwise land 30% of the time
+    // plus the level gap. Stat stages don't enter into it.
+    if (defender.level > attacker.level) return 0;
+    return Math.min(1, (30 + attacker.level - defender.level) / 100);
+  }
+
+  if (field.weather !== null && (PERFECT_ACCURACY_WEATHER[moveData.id]?.includes(field.weather) ?? false)) return 1;
+  if (moveData.accuracy === true) return 1;
+
+  const listed =
+    field.weather === "SunnyDay" ? (SUN_REDUCED_ACCURACY[moveData.id] ?? moveData.accuracy) : moveData.accuracy;
+  const stage = (attacker.boosts.accuracy ?? 0) - (defender.boosts.evasion ?? 0);
+  return Math.min(
+    1,
+    (listed / 100) * accuracyStageMultiplier(stage) * abilityAccuracyMultiplier(attacker.ability, moveData),
+  );
+}
+
+/**
+ * Damage that bypasses the formula: Seismic Toss and Night Shade's level, Dragon Rage's flat 40,
+ * and an OHKO move, which deals exactly as much as the target has left.
+ */
+function fixedDamage(moveData: MoveData, attacker: Combatant, defender: Combatant): number | null {
+  if (moveData.ohko) return defender.currentHp;
   if (moveData.damage === "level") return attacker.level;
   if (typeof moveData.damage === "number") return moveData.damage;
   return null;
@@ -603,7 +750,7 @@ function drainBonus(rawDamage: number, moveData: MoveData, attacker: Combatant):
 function multiTurnFactor(moveData: MoveData, field: FieldConditions): number {
   if (moveData.flags?.recharge) return RECHARGE_FACTOR;
   if (moveData.flags?.charge) {
-    if (moveData.id === "solarbeam" && field.weather === "SunnyDay") return 1;
+    if ((moveData.id === "solarbeam" || moveData.id === "solarblade") && field.weather === "SunnyDay") return 1;
     return CHARGE_FACTOR;
   }
   return 1;
@@ -615,6 +762,8 @@ interface DamageAssessment {
   expectedPercent: number;
   /** Whether even a low roll takes the defender out, on a move that can't miss. */
   guaranteedKo: boolean;
+  /** Whether this move resolves before the defender's — via priority, or by simply being faster. */
+  actsFirst: boolean;
 }
 
 function scoreDamagingMove(
@@ -627,18 +776,18 @@ function scoreDamagingMove(
 ): DamageAssessment {
   const immune =
     !Dex.getImmunity(moveData.type, defender.types) || isImmuneViaAbility(moveData.type, defender.ability);
-  if (immune) return { score: KNOWN_FAILURE_SCORE, expectedPercent: 0, guaranteedKo: false };
+  if (immune) return { score: KNOWN_FAILURE_SCORE, expectedPercent: 0, guaranteedKo: false, actsFirst: false };
 
-  const fixed = fixedDamage(moveData, attacker);
-  const rawDamage = fixed ?? Math.max(computeRawDamage(moveData, attacker, defender, field), 0);
+  const actsFirst = moveData.priority > 0 || speed === "win";
+  const fixed = fixedDamage(moveData, attacker, defender);
+  const rawDamage = fixed ?? Math.max(computeRawDamage(moveData, attacker, defender, field, { movesFirst: actsFirst }), 0);
   const damagePercent = rawDamage / Math.max(defender.maxHp, 1);
-  const accuracy = moveAccuracy(moveData, attacker, defender);
+  const accuracy = moveAccuracy(moveData, attacker, defender, field);
   const defenderHpFraction = defender.currentHp / Math.max(defender.maxHp, 1);
 
   // A KO is only worth the full bonus when it's guaranteed even on a low roll and we land it first.
   const guaranteedKo = damagePercent * LOW_ROLL_RATIO >= defenderHpFraction;
   const possibleKo = damagePercent >= defenderHpFraction;
-  const actsFirst = moveData.priority > 0 || speed === "win";
   let ko = 0;
   if (guaranteedKo) {
     ko = actsFirst ? GUARANTEED_KO_BONUS : speed === "range" ? GUARANTEED_KO_BONUS / 2 : LIKELY_KO_BONUS;
@@ -658,7 +807,122 @@ function scoreDamagingMove(
     score,
     expectedPercent: damagePercent * 100 * accuracy,
     guaranteedKo: guaranteedKo && accuracy >= 1,
+    actsFirst,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Switching
+// ---------------------------------------------------------------------------
+
+/** Best damage, as a percent of the target's max HP, a Pokemon could manage with the moves it knows. */
+function bestMoveDamagePercent(
+  moves: string[],
+  self: Combatant,
+  target: Combatant,
+  field: FieldConditions,
+): number {
+  let best = 0;
+  for (const name of moves) {
+    const data = Dex.moves.get(name);
+    if (data.category === "Status") continue;
+    if (!Dex.getImmunity(data.type, target.types) || isImmuneViaAbility(data.type, target.ability)) continue;
+    const fixed = fixedDamage(data, self, target);
+    const raw = fixed ?? Math.max(computeRawDamage(data, self, target, field), 0);
+    const percent = (raw / Math.max(target.maxHp, 1)) * 100 * moveAccuracy(data, self, target, field);
+    best = Math.max(best, percent);
+  }
+  return best;
+}
+
+interface SwitchAssessment {
+  choice: string;
+  /** Net percent-of-max-HP this candidate trades over SWITCH_HORIZON_TURNS, entry toll already deducted. */
+  score: number;
+}
+
+/**
+ * Prices bringing one benched teammate in against the player's current Pokemon, in the same
+ * percent-of-max-HP currency every move is scored in: what it trades per turn over the switch
+ * horizon, minus the entry hazards it walks into and (when the switch is voluntary) the free turn
+ * the player gets to attack into.
+ */
+function assessSwitch(
+  option: BenchOption,
+  defender: Combatant,
+  field: FieldConditions,
+  concedesFreeTurn: boolean,
+): SwitchAssessment {
+  const candidate = option.combatant;
+  const hpPercent = (candidate.currentHp / Math.max(candidate.maxHp, 1)) * 100;
+
+  const outgoing = bestMoveDamagePercent(option.moves, candidate, defender, field);
+  const incoming =
+    (estimateIncomingDamage(candidate, defender, field) / Math.max(candidate.maxHp, 1)) * 100 +
+    residualFractionPerTurn(candidate, field) * 100;
+
+  const entryCost = switchInHazardCost(candidate, field.attackerHazards) * 100 + (concedesFreeTurn ? incoming : 0);
+  // Pivoting into something that dies on the way in trades one Pokemon for nothing.
+  const dies = entryCost >= hpPercent;
+
+  return {
+    choice: option.choice,
+    score: (outgoing - incoming) * SWITCH_HORIZON_TURNS - entryCost - (dies ? FAINTS_ON_ENTRY_PENALTY : 0),
+  };
+}
+
+/**
+ * Picks the replacement after a knockout. Party order is not a strategy: this sends in whichever
+ * teammate actually wins the matchup it is walking into, hazards on our own side included.
+ */
+function chooseReplacement(ctx: TrainerAiContext): string {
+  const fallback = ctx.request.switches[0]?.choice ?? "move 1";
+  const bench = ctx.bench ?? [];
+  if (bench.length === 0) return fallback;
+
+  let best = fallback;
+  let bestScore = -Infinity;
+  for (const option of bench) {
+    const { score } = assessSwitch(option, ctx.defender, ctx.field, false);
+    if (score > bestScore) {
+      bestScore = score;
+      best = option.choice;
+    }
+  }
+  return best;
+}
+
+/**
+ * Whether to pivot out instead of attacking. Deliberately conservative: switching hands the player
+ * a free turn, so it only fires out of a matchup that is genuinely losing, and only for a
+ * replacement that beats staying by a clear margin. Without cross-turn memory the margin is also
+ * what stops the AI oscillating between two Pokemon.
+ */
+function considerVoluntarySwitch(
+  ctx: TrainerAiContext,
+  horizon: Horizon,
+  bestDamagePercent: number,
+  guaranteedKoFirst: boolean,
+  speed: SpeedComparison,
+): string | null {
+  const bench = ctx.bench ?? [];
+  if (bench.length === 0 || ctx.request.trapped || ctx.request.switches.length === 0) return null;
+  // Winning the matchup outright this turn beats any pivot.
+  if (guaranteedKoFirst) return null;
+
+  const outpaced = horizon.turnsToKo > horizon.turnsToLive || (horizon.turnsToKo === horizon.turnsToLive && speed === "lose");
+  if (horizon.turnsToLive > LOSING_TURNS_TO_LIVE || !outpaced) return null;
+
+  const stayScore =
+    (bestDamagePercent - (horizon.incomingFraction + horizon.residualFraction) * 100) * SWITCH_HORIZON_TURNS;
+
+  let best: SwitchAssessment | null = null;
+  for (const option of bench) {
+    const assessment = assessSwitch(option, ctx.defender, ctx.field, true);
+    if (best === null || assessment.score > best.score) best = assessment;
+  }
+  if (best === null || best.score <= stayScore + VOLUNTARY_SWITCH_MARGIN) return null;
+  return best.choice;
 }
 
 // ---------------------------------------------------------------------------
@@ -671,66 +935,112 @@ function applyPpConservation(score: number, move: MoveOption): number {
 }
 
 /**
+ * How far a Status move is damped by having a knockout available. Landing the KO before the player
+ * moves makes everything else worthless, but a "range" speed check is a coin flip, not a win —
+ * zeroing status there gambled the turn on winning a roll the AI cannot see.
+ */
+function koSuppressionFactor(guaranteedKoFirst: boolean, guaranteedKoAny: boolean, speed: SpeedComparison): number {
+  if (guaranteedKoFirst) return 0;
+  if (!guaranteedKoAny) return 1;
+  return speed === "range" ? KO_RANGE_SUPPRESSION : 1;
+}
+
+/**
+ * Additive tie-breaking wobble, sized against the best score on the board rather than each move's
+ * own. Non-positive scores are left alone so a move known to fail can never jitter its way above a
+ * real one.
+ */
+function applyJitter(score: number, amplitude: number, rng: () => number): number {
+  if (score <= 0) return score;
+  return Math.max(JITTERED_SCORE_FLOOR, score + (rng() - 0.5) * 2 * amplitude);
+}
+
+/**
  * Picks the opposing trainer's move. Same general shape as the "basic" AI, but every Status move is
  * priced by its modeled effect instead of a flat baseline, screened for real legality (type and
- * ability status immunities, bottomed-out stat drops, powder into Grass) and for accuracy, and setup
- * is capped at +2 unless the board is clearly safe.
+ * ability status immunities, bottomed-out stat drops, powder into Grass) and for accuracy, setup is
+ * capped at +2 unless the board is clearly safe, and a losing matchup is a reason to pivot out
+ * rather than something to stand and die in.
  */
 function chooseMove(ctx: TrainerAiContext): string {
-  const { request, attacker, defender, field } = ctx;
+  const { request, attacker, defender, field, defenderPartyRemaining } = ctx;
   const rng = ctx.rng ?? Math.random;
 
-  if (request.forceSwitch) return request.switches[0]?.choice ?? "move 1";
+  if (request.forceSwitch) return chooseReplacement(ctx);
 
   const usable = request.moves.filter((move) => !move.disabled);
-  if (usable.length === 0) return request.switches[0]?.choice ?? "move 1";
+  if (usable.length === 0) return chooseReplacement(ctx);
 
   const speed = compareSpeed(attacker, defender);
   const offense = offensiveMoveMix(request.moves);
-
-  // Pass 1: price the damaging moves. Their best result sets the horizon every Status move is judged
-  // against — a Status move is only worth a turn relative to the attack it replaces.
   const moveData = usable.map((move) => Dex.moves.get(move.name));
-  const provisionalHorizon = buildHorizon(attacker, defender, field, 0);
-  const damageAssessments = usable.map((_move, index) =>
-    moveData[index].category === "Status"
-      ? null
-      : scoreDamagingMove(moveData[index], attacker, defender, field, speed, provisionalHorizon),
-  );
 
+  // Pass 1: price the damaging moves against a provisional horizon, purely to learn how hard this
+  // Pokemon can hit. Only expectedPercent and the KO flags are kept — the scores are recomputed
+  // below, because a horizon built with zero damage overstates how long the matchup will last and
+  // every secondary effect is valued against that window.
+  const provisionalHorizon = buildHorizon(attacker, defender, field, 0);
   let bestDamagePercent = 0;
-  let hasGuaranteedKo = false;
-  for (const assessment of damageAssessments) {
-    if (!assessment) continue;
+  for (let index = 0; index < usable.length; index++) {
+    if (moveData[index].category === "Status") continue;
+    const assessment = scoreDamagingMove(moveData[index], attacker, defender, field, speed, provisionalHorizon);
     bestDamagePercent = Math.max(bestDamagePercent, assessment.expectedPercent);
-    if (assessment.guaranteedKo) hasGuaranteedKo = true;
   }
   const horizon = buildHorizon(attacker, defender, field, (bestDamagePercent / 100) * defender.maxHp);
 
-  // Pass 2: combine, with Status moves scored against that horizon.
+  // Pass 2: rescore everything against the real horizon, so damaging and Status moves are judged
+  // over the same turn budget.
+  const scores: number[] = [];
+  let guaranteedKoAny = false;
+  let guaranteedKoFirst = false;
+  const assessments = usable.map((_move, index) =>
+    moveData[index].category === "Status"
+      ? null
+      : scoreDamagingMove(moveData[index], attacker, defender, field, speed, horizon),
+  );
+  for (const assessment of assessments) {
+    if (!assessment?.guaranteedKo) continue;
+    guaranteedKoAny = true;
+    if (assessment.actsFirst) guaranteedKoFirst = true;
+  }
+
+  const suppression = koSuppressionFactor(guaranteedKoFirst, guaranteedKoAny, speed);
+  for (let index = 0; index < usable.length; index++) {
+    const data = moveData[index];
+    let raw: number;
+    if (data.category === "Status") {
+      const value = scoreStatusMove(
+        data,
+        attacker,
+        defender,
+        field,
+        speed,
+        offense,
+        horizon,
+        bestDamagePercent,
+        defenderPartyRemaining,
+      );
+      // Suppression only damps a move that is worth something; scaling a known-failure score toward
+      // zero would quietly promote it above the other options it is meant to rank below.
+      raw = value > 0 ? value * suppression : value;
+    } else {
+      raw = assessments[index]?.score ?? 0;
+    }
+    scores.push(applyPpConservation(raw, usable[index]));
+  }
+
+  // Pass 3: pivot out of a hopeless matchup rather than spending the turn losing it slowly.
+  const pivot = considerVoluntarySwitch(ctx, horizon, bestDamagePercent, guaranteedKoFirst, speed);
+  if (pivot !== null) return pivot;
+
+  const amplitude = (Math.max(...scores, JITTER_REFERENCE_FLOOR) * JITTER_RANGE) / 2;
   let best = usable[0];
   let bestScore = -Infinity;
   for (let index = 0; index < usable.length; index++) {
-    const move = usable[index];
-    const data = moveData[index];
-    let score: number;
-
-    if (data.category === "Status") {
-      // Nothing a Status move buys beats simply winning the matchup this turn.
-      score =
-        hasGuaranteedKo && speed !== "lose"
-          ? 0
-          : scoreStatusMove(data, attacker, defender, field, speed, offense, horizon, bestDamagePercent);
-    } else {
-      score = damageAssessments[index]?.score ?? 0;
-    }
-
-    score = applyPpConservation(score, move);
-    score *= 1 - JITTER_RANGE / 2 + rng() * JITTER_RANGE;
-
+    const score = applyJitter(scores[index], amplitude, rng);
     if (score > bestScore) {
       bestScore = score;
-      best = move;
+      best = usable[index];
     }
   }
   return best.choice;
