@@ -5,15 +5,24 @@ import { basicTrainerAi } from "./basic";
 import { firstTrainerAi } from "./first";
 import { randomTrainerAi } from "./random";
 import { tacticalTrainerAi } from "./tactical";
+import { tacticalV0TrainerAi } from "./tacticalV0";
 import type { TrainerAiImplementation } from "./types";
 
 export { basicTrainerAi } from "./basic";
 export { randomTrainerAi } from "./random";
 export { firstTrainerAi } from "./first";
 export { tacticalTrainerAi } from "./tactical";
+export { tacticalV0TrainerAi } from "./tacticalV0";
 
 /** Every trainer AI implementation selectable from the dev tools dropdown, in display order. */
-export const TRAINER_AI_IMPLEMENTATIONS: TrainerAiImplementation[] = [tacticalTrainerAi, basicTrainerAi, randomTrainerAi, firstTrainerAi];
+export const TRAINER_AI_IMPLEMENTATIONS: TrainerAiImplementation[] = [
+  tacticalTrainerAi,
+  // A frozen copy of the previous "tactical", kept selectable to play the two against each other.
+  tacticalV0TrainerAi,
+  basicTrainerAi,
+  randomTrainerAi,
+  firstTrainerAi,
+];
 
 export const DEFAULT_TRAINER_AI_ID: string = tacticalTrainerAi.id;
 
