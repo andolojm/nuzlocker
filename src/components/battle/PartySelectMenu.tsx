@@ -56,7 +56,7 @@ export function PartySelectMenu({ party, onSelectPokemon, onClose, startSelected
             }`}
           >
             {slot.status === "empty" ? (
-              <span className="w-full text-center text-xs italic">— empty —</span>
+              <span className="w-full text-center text-xs italic">empty</span>
             ) : (
               <PokemonTile pokemon={slot.pokemon} hp={slot.hp} emphasized={isChosen} />
             )}

@@ -7,12 +7,6 @@ describe("STAGES", () => {
     expect(STAGES.slice(1).every((stage) => stage.type !== StageType.InitialChoice)).toBe(true);
   });
 
-  it("gives every stage non-empty descriptive text", () => {
-    for (const stage of STAGES) {
-      expect(stage.description.length).toBeGreaterThan(0);
-    }
-  });
-
   it("only gives Battle stages an opponentTeam", () => {
     for (const stage of STAGES) {
       if (stage.type === StageType.Battle) {

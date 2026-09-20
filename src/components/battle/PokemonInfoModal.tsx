@@ -97,7 +97,7 @@ export function PokemonInfoModal({
         >
           <div className="flex items-start justify-between gap-2">
             <h2 className="font-bold">
-              {displayPokemon.name.english} — Lv{displayPokemon.level}
+              {displayPokemon.name.english} (Lv{displayPokemon.level})
             </h2>
             <button type="button" onClick={onClose} aria-label="Close">
               ✕

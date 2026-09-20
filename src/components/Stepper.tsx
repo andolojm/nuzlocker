@@ -92,7 +92,6 @@ export function Stepper({ stages, progress }: StepperProps) {
               key={index}
               ref={status === "current" ? currentRef : undefined}
               className={`flex shrink-0 items-center gap-1.5 ${isLast ? "" : "flex-1 min-w-[4rem]"}`}
-              title={stage.description}
             >
               <StepNode stage={stage} status={status} />
               {!isLast && (

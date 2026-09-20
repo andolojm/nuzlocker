@@ -13,8 +13,8 @@ export function PreloadImagesConfirmModal({ onCancel, onConfirm }: PreloadImages
       >
         <p className="font-bold">Download 1700+ images?</p>
         <p className="mt-2 text-slate-700">
-          This caches every Pokémon's artwork for offline use — that's a lot of data. You should be
-          on Wi-Fi before starting.
+          This caches every Pokémon's artwork for offline use, which is a lot of data. You should
+          be on Wi-Fi before starting.
         </p>
 
         <div className="mt-4 flex justify-center gap-3">

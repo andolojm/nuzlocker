@@ -54,7 +54,7 @@ export function DevStageControls({ onReset }: DevStageControlsProps) {
       setStatus("Cached all Pokemon images for offline use.");
     } catch (error) {
       console.error("Failed to preload Pokemon images", error);
-      setStatus("Couldn't cache Pokemon images — see console.");
+      setStatus("Couldn't cache Pokemon images. See console.");
     } finally {
       setPreloadingImages(false);
     }
@@ -77,7 +77,7 @@ export function DevStageControls({ onReset }: DevStageControlsProps) {
       setStatus("Copied game state to clipboard.");
     } catch (error) {
       console.error("Failed to export game state", error);
-      setStatus("Couldn't copy to clipboard — see console.");
+      setStatus("Couldn't copy to clipboard. See console.");
     }
   }
 
@@ -92,7 +92,7 @@ export function DevStageControls({ onReset }: DevStageControlsProps) {
       setStatus(
         error instanceof Error
           ? error.message
-          : "Couldn't import from clipboard — see console.",
+          : "Couldn't import from clipboard. See console.",
       );
     }
   }

@@ -17,7 +17,7 @@ export function GuidePage() {
       setPreloadStatus("All Pokémon images are cached for offline use.");
     } catch (error) {
       console.error("Failed to preload Pokemon images", error);
-      setPreloadStatus("Couldn't cache Pokémon images — see console.");
+      setPreloadStatus("Couldn't cache Pokémon images. See console.");
     }
   }
 
@@ -28,7 +28,7 @@ export function GuidePage() {
       <section className="mt-6">
         <h2 className="text-lg font-bold text-slate-900">Installing this app</h2>
         <p className="mt-1 text-sm text-slate-600">
-          PokeRally is a Progressive Web App (PWA) — a website that can be installed like a regular
+          PokeRally is a Progressive Web App (PWA), a website that can be installed like a regular
           app. Installing it adds an icon to your home screen, opens it in its own window without
           browser tabs or an address bar, and lets it keep working without an internet connection,
           once you've{" "}
