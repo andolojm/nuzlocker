@@ -1,11 +1,25 @@
 import { useState } from "react";
 import { PreloadImagesConfirmModal } from "../components/PreloadImagesConfirmModal";
 import { SCORING_RULE_EXPLAINERS, ScoringRule } from "../engine/scoring";
+import { checkForUpdates } from "../pwa";
 import { preloadAllPokemonImages } from "../util/preloadPokemonImages";
 
 export function GuidePage() {
   const [confirmingPreload, setConfirmingPreload] = useState(false);
   const [preloadStatus, setPreloadStatus] = useState<string | null>(null);
+  const [updateStatus, setUpdateStatus] = useState<string | null>(null);
+
+  async function handleCheckForUpdates() {
+    setUpdateStatus("Checking for updates…");
+    try {
+      const checked = await checkForUpdates();
+      // If an update was found, the app reloads on its own; this only shows when there wasn't one.
+      setUpdateStatus(checked ? "You're up to date." : "Couldn't check for updates on this browser.");
+    } catch (error) {
+      console.error("Failed to check for updates", error);
+      setUpdateStatus("Couldn't check for updates. See console.");
+    }
+  }
 
   async function handlePreloadImages() {
     setConfirmingPreload(false);
@@ -66,6 +80,19 @@ export function GuidePage() {
             (Google Chrome Help)
           </li>
         </ul>
+        <p className="mt-3 text-sm text-slate-600">
+          Once installed, the app can keep showing an older cached version even after new changes go
+          live.{" "}
+          <button
+            type="button"
+            onClick={() => void handleCheckForUpdates()}
+            className="font-bold text-blue-600 underline"
+          >
+            Check for updates
+          </button>{" "}
+          to fetch the latest version now.
+        </p>
+        {updateStatus && <p className="mt-1 text-sm text-slate-600">{updateStatus}</p>}
       </section>
 
       <section className="mt-6">
